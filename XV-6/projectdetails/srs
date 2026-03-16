@@ -1,0 +1,919 @@
+Software Requirements
+Specification
+
+for
+
+MiniOS Design
+
+Version 4.0
+
+Prepared by Group - 2
+
+Group 2 Members :
+Aditya Sharma (B24CS1119)
+Mehta Taksh Ashish (B24CS1115)
+Ved Mitra Verma (B24CS1086)
+Mayank Tiwari (B24CS1098)
+
+March 2026
+
+Contents
+
+1 Introduction
+
+1.1 Purpose . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.2 Document Conventions . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.3
+Intended Audience and Reading Suggestions . . . . . . . . . . . . . . . .
+1.4 Product Scope . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.5 References . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.6 Alpha Managers . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.7 MiniOS — Sprint Plan . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.7.1 Team . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.7.2 Feature to SRS Requirements Mapping . . . . . . . . . . . . . . .
+Sprint 1 — Foundation & Environment Setup . . . . . . . . . . .
+1.7.3
+Sprint 2 — Core Logic Implementation . . . . . . . . . . . . . . .
+1.7.4
+Sprint 3 — Integration & Synchronization . . . . . . . . . . . . .
+1.7.5
+Sprint 4 — Testing, Polish & Demo . . . . . . . . . . . . . . . . .
+1.7.6
+1.7.7 Risk Register
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+Summary Timeline & Mapping . . . . . . . . . . . . . . . . . . .
+1.7.8
+1.8 Project Management Tools . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+2 Overall Description
+
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.1 Product Perspective
+2.2 Product Functions
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.3 User Classes and Characteristics . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.4 Operating Environment
+2.5 Design and Implementation Constraints . . . . . . . . . . . . . . . . . . .
+2.6 User Documentation . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . .
+2.7 Assumptions and Dependencies
+
+3 External Interface Requirements
+
+3.1 User Interfaces
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.2 Hardware Interfaces . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.3 Software Interfaces . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+4 System Features
+
+4.1 Dynamic Priority Scheduling . . . . . . . . . . . . . . . . . . . . . . . . .
+4.1.1 Description and Priority . . . . . . . . . . . . . . . . . . . . . . .
+4.1.2 Functional Requirements . . . . . . . . . . . . . . . . . . . . . . .
+4.2 Paging with Copy-On-Write . . . . . . . . . . . . . . . . . . . . . . . . .
+4.2.1 Description and Priority . . . . . . . . . . . . . . . . . . . . . . .
+4.2.2
+Stimulus/Response Sequences . . . . . . . . . . . . . . . . . . . .
+4.2.3 Functional Requirements . . . . . . . . . . . . . . . . . . . . . . .
+4.3 File Management System . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.3.1 Description . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.3.2 Functional Requirements . . . . . . . . . . . . . . . . . . . . . . .
+4.4 Garbage Collection . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.4.1 Description . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.4.2 Functional Requirements . . . . . . . . . . . . . . . . . . . . . . .
+4.5 Dynamic Memory Compaction . . . . . . . . . . . . . . . . . . . . . . . .
+
+1
+
+4
+4
+4
+4
+4
+5
+5
+5
+5
+5
+5
+7
+7
+7
+8
+8
+8
+
+9
+9
+9
+9
+9
+9
+10
+10
+
+10
+10
+10
+10
+
+10
+10
+10
+11
+11
+11
+11
+12
+12
+12
+12
+12
+12
+12
+13
+
+4.5.1 Description . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.5.2 Functional Requirements . . . . . . . . . . . . . . . . . . . . . . .
+
+5 Other Nonfunctional Requirements
+
+5.1 Performance . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.2 Safety Requirements
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3 Security Requirements
+. . . . . . . . . . . . . . . . . . . . . . . . .
+5.4 Software Quality Attributes
+
+A Glossary
+
+B Analysis Models
+
+C To Be Determined List
+
+D Appendices
+
+Appendices
+
+13
+13
+
+13
+13
+13
+13
+13
+
+14
+
+14
+
+14
+
+15
+
+15
+
+2
+
+Revision History
+
+Name Date
+Jan 21 2026
+Group 2
+Group 2 Feb 4 2026
+Group 2 March 2 2026
+Group 2 March 12 2026
+
+Reason for Changes
+Initial SRS Creation
+Clarified deliverables and system goals
+Scheduler, COW Memory design
+IPC removed. Added File Manager, Garbage
+Collector and Memory Compaction
+
+Version
+1.0
+2.0
+3.0
+4.0
+
+3
+
+1
+
+Introduction
+
+1.1 Purpose
+
+This document specifies the Software Requirements Specification (SRS) for MiniOS Ver-
+sion 4.0.
+
+MiniOS is a pedagogical operating system built by extending the xv6 UNIX-like teach-
+ing OS. The system demonstrates scheduling, memory management, file management,
+garbage collection, and dynamic memory compaction mechanisms.
+
+1.2 Document Conventions
+
+Requirements are labeled:
+
+REQ-SCH-* (Scheduling)
+REQ-MEM-* (Memory)
+REQ-FILE-* (File Manager)
+REQ-GC-* (Garbage Collector)
+REQ-DMEM-* (Dynamic Memory Compaction)
+
+1.3 Intended Audience and Reading Suggestions
+
+This document is intended for:
+
+• OS Developers
+
+• Academic Evaluators
+
+• System Testers
+
+• Project Supervisors
+
+Readers should begin with Section 2 (Overall Description) before proceeding to System
+Features.
+
+1.4 Product Scope
+
+MiniOS extends xv6 to demonstrate:
+
+• Priority-based scheduling with aging
+
+• Paging with Copy-On-Write
+
+• File management subsystem
+
+• Garbage collection
+
+• Dynamic memory compaction
+
+4
+
+1.5 References
+
+1. Arpaci-Dusseau, Operating Systems: Three Easy Pieces.
+
+2. IIT Bombay OS Notes.
+
+3. MIT xv6 Documentation.
+
+4. OSDev Wiki.
+
+1.6 Alpha Managers
+
+• Mehta Taksh Ashish – Software Systems, Team
+
+• Ved Mitra Verma – Work , Way of Working
+
+• Mayank Tiwari – Stakeholder, Requirements
+
+• Aditya Sharma – Opportunity
+
+1.7 MiniOS — Sprint Plan
+
+Project: MiniOS (xv6 Extension)
+Platform: xv6 kernel running on QEMU x86 emulator
+
+1.7.1 Team
+
+# Member
+1 Taksh Mehta
+2 Aditya Sharma
+3 Mayank Tiwari
+4 Ved Mitra Verma File Manager + Garbage Collector
+
+Feature Ownership
+Dynamic Priority Scheduler
+Paging + Copy-On-Write (Lead)
+Dynamic Memory + Compaction (Integration)
+
+1.7.2 Feature to SRS Requirements Mapping
+
+Feature
+Dynamic Priority Scheduling
+
+Paging with Copy-On-Write
+
+File Manager
+
+SRS Requirements
+REQ-SCH-1, REQ-SCH-2, REQ-SCH-3, REQ-SCH-
+4, REQ-SCH-5, REQ-SCH-6, REQ-SCH-7
+REQ-MEM-1, REQ-MEM-2, REQ-MEM-3, REQ-
+MEM-4, REQ-MEM-5, REQ-MEM-6
+REQ-FILE-1, REQ-FILE-2, REQ-FILE-3, REQ-
+FILE-4
+REQ-GC-1, REQ-GC-2, REQ-GC-3
+
+Garbage Collector
+Dynamic Memory Compaction REQ-DMEM-1, REQ-DMEM-2, REQ-DMEM-3
+
+1.7.3 Sprint 1 — Foundation & Environment Setup
+
+Duration: Week 1
+Goal: Working development environment and subsystem skeletons integrated into xv6.
+
+5
+
+Tasks: Taksh — Priority Scheduler
+
+• Study proc.c, trap.c, sched() workflow
+
+• Extend struct proc with priority, wait ticks, cpu ticks
+
+• Implement scheduler skeleton
+
+• Define initial α and β parameters
+
+Aditya — COW Memory (Lead)
+
+• Study xv6 paging implementation in vm.c
+
+• Study fork() memory behavior
+
+• Add reference counting array ref count[PHYSTOP/PGSIZE]
+
+• Draft Copy-On-Write page fault design
+
+Mayank — Dynamic Memory Management
+
+• Implement memory allocation structures
+
+• Study kalloc.c
+
+• Add dynamic memory tracking structures
+
+• Design memory compaction algorithm
+
+Ved Mitra — File Manager + Garbage Collector
+
+• Design basic file abstraction structure
+
+• Implement file creation and deletion stubs
+
+• Design garbage collector mechanism
+
+• Add system call stubs for file operations
+
+Sprint 1 Deliverables
+
+• xv6 builds and runs on all machines
+
+• struct proc extended successfully
+
+• Reference count structure implemented
+
+• File manager structure defined
+
+• Initial memory management structures implemented
+
+• Kernel boots without regression
+
+6
+
+1.7.4 Sprint 2 — Core Logic Implementation
+
+Duration: Week 2
+Goal: Implement core functionality for scheduler, file management, and memory han-
+dling.
+
+Sprint 2 Deliverables
+
+• Scheduler selects highest priority process
+
+• Fork shares memory pages using COW
+
+• File creation, read, write, and deletion operations implemented
+
+• Garbage collector detects unused memory blocks
+
+• Arithmetic and logical processes successfully executed
+
+by
+
+layout
+
+allocation
+
+Resolution
+Freeze
+Sprint 3
+Shared
+interface
+Memory
+paction logic
+Run GC during idle
+cycles
+
+com-
+
+1.7.5 Sprint 3 — Integration & Synchronization
+
+Duration: Week 3,4
+Goal: Integrate all subsystems and resolve edge cases.
+
+Cross-Feature Coordination Points
+
+Touchpoint
+struct proc layout Taksh + Aditya
+
+Who
+
+Risk
+Field conflicts
+
+storage
+
+Memory allocation
+integration
+File
+memory blocks
+Scheduler
+tion with GC
+
+interac-
+
+and
+
+Mayank + Aditya Memory
+
+inconsis-
+
+Ved + Mayank
+
+Taksh + Ved
+
+tency
+Fragmentation
+issues
+Timing conflicts
+
+Sprint 3 Deliverables
+
+• No starvation under scheduler stress tests
+
+• COW memory stable under concurrent writes
+
+• File manager integrated with dynamic memory system
+
+• Garbage collector safely frees unused memory
+
+• Memory compaction reduces fragmentation
+
+• No kernel panic under combined workloads
+
+1.7.6 Sprint 4 — Testing, Polish & Demo
+
+Duration: Week 5
+Goal: Full validation, documentation, and system demonstration.
+
+7
+
+Sprint 4 Deliverables
+
+• Scheduler performance validated
+
+• Copy-On-Write memory stress tests pass
+
+• File operations validated with multiple processes
+
+• Garbage collection successfully reclaims memory
+
+• Memory compaction verified during idle state
+
+• Arithmetic/Logical workload runs correctly
+
+• QEMU demo prepared
+
+1.7.7 Risk Register
+
+Likelihood Impact Mitigation
+Risk
+Medium
+α/β instability
+High
+COW race on ref count
+Memory fragmentation
+Medium
+Garbage collection timing issues Medium
+QEMU memory limit
+
+Medium Parameter tuning during testing
+High
+Medium Dynamic compaction algorithm
+Medium Run GC during idle CPU cycles
+Medium Define memory constraints early
+
+Spinlocks for synchronization
+
+Low
+
+1.7.8 Summary Timeline & Mapping
+
+Week
+Semester Timeline
+Week 1
+March 2, 2026 - March 8, 2026
+March 9, 2026 - March 15, 2026
+Week 2
+Week 3,4 March 16, 2026 - March 29, 2026 Sprint 3
+March 30, 2026 - April 5, 2026
+Week 5
+
+Focus
+
+Sprint
+Sprint 1 Setup + Subsystem Stubs
+Sprint 2 Core Logic Implementation
+
+Integration + Synchronization
+
+Sprint 4 Testing + Demo
+
+1.8 Project Management Tools
+
+The MiniOS project will be developed using modern project management and collabora-
+tion tools to ensure structured planning, effective coordination, and clear documentation.
+
+• Trello will be used for task planning and progress tracking through boards and
+cards representing different development stages such as design, implementation,
+and testing.
+
+• Notion will be used as a centralized platform for maintaining design documenta-
+
+tion, architectural decisions, and development notes.
+
+• Git will be used for version control to manage source code changes, track revisions,
+
+and support collaborative development.
+
+• QEMU and the GNU toolchain will be used for building, testing, and debugging
+
+the operating system in an emulated environment.
+
+8
+
+2 Overall Description
+
+2.1 Product Perspective
+
+It
+MiniOS is built as an extension of xv6 and runs inside the QEMU x86 emulator.
+modifies scheduling, memory management, and IPC subsystems while retaining xv6’s
+core kernel structure.
+
+2.2 Product Functions
+
+MiniOS provides:
+
+• Dynamic priority scheduling
+
+• Paging with Copy-On-Write
+
+• File storage and retrieval
+
+• Memory reclamation using garbage collection
+
+• Dynamic memory compaction
+
+2.3 User Classes and Characteristics
+
+• Students learning OS concepts
+
+• Developers modifying xv6
+
+• Evaluators analyzing subsystem design
+
+2.4 Operating Environment
+
+• QEMU x86 emulator
+
+• xv6 kernel base
+
+• GNU toolchain
+
+• C and x86 Assembly
+
+2.5 Design and Implementation Constraints
+
+• Must extend xv6 architecture
+
+• Must run under QEMU constraints
+
+• Limited simulated memory
+
+• Paging structure inherited from xv6
+
+9
+
+2.6 User Documentation
+
+• Design documentation
+
+• UML diagrams
+
+2.7 Assumptions and Dependencies
+
+• xv6 paging structure is available
+
+• QEMU provides stable hardware simulation
+
+• Fork-heavy workloads assumed for COW benefit
+
+3 External Interface Requirements
+
+3.1 User Interfaces
+
+MiniOS interacts via system calls and terminal interface inherited from xv6.
+
+3.2 Hardware Interfaces
+
+Runs on simulated x86 hardware via QEMU.
+
+3.3 Software Interfaces
+
+• xv6 kernel
+
+• Page tables
+
+• Interrupt handling subsystem
+
+4 System Features
+
+4.1 Dynamic Priority Scheduling
+
+4.1.1 Description and Priority
+
+Implements preemptive scheduling with aging to prevent starvation. Priority: High
+
+• Priority update rule:
+
+– pi(t) = dynamic priority
+– α = aging increment
+
+– β = CPU penalty
+
+pi(t + 1) =
+
+(cid:40)
+
+pi(t) − β if CPU-bound
+pi(t) + α if waiting
+
+10
+
+4.1.2 Functional Requirements
+
+• REQ-SCH-1: The system shall assign a dynamic priority pi(t) to each process.
+
+• REQ-SCH-2: Waiting processes shall gain priority using aging parameter α.
+
+• REQ-SCH-3: CPU-bound processes shall be penalized using parameter β.
+
+• REQ-SCH-4: The system shall guarantee bounded waiting time.
+
+• REQ-SCH-5: The system shall define excessive CPU usage as CPU execution ex-
+
+ceeding TCP U M AX timer ticks within a scheduling window W .
+
+– Timer Tick: A periodic hardware interrupt generated by the system clock used
+
+as the base unit of time measurement.
+
+– Scheduling Window (W): A logical grouping of timer ticks used to evaluate
+
+process CPU usage behavior for priority adjustment.
+
+• REQ-SCH-6: The default scheduling parameter values shall be:
+
+– αdef ault = 1
+– βdef ault = 2
+– TCP U M AX def ault = 10 timer ticks
+– Wdef ault = 50 timer ticks
+
+• REQ-SCH-7: The allowed configuration ranges shall be:
+
+– 0 ≤ α ≤ 5
+
+– 0 ≤ β ≤ 10
+
+– 1 ≤ TCP U M AX ≤ 100
+– 10 ≤ W ≤ 500
+
+4.2 Paging with Copy-On-Write
+
+4.2.1 Description and Priority
+
+Implements memory sharing after fork and duplication upon write. Priority: High
+
+4.2.2 Stimulus/Response Sequences
+
+• fork() called → pages shared
+
+• write to shared page → page fault → copy created
+
+11
+
+4.2.3 Functional Requirements
+
+• REQ-MEM-1: The system shall share pages after fork.
+
+• REQ-MEM-2: The system shall copy a page only upon modification.
+
+• REQ-MEM-3: The system shall maintain reference counting.
+
+• REQ-MEM-4: The system shall handle page faults correctly.
+
+• REQ-MEM-5: The system shall use a fixed page size of 4096 bytes (4KB), consistent
+
+with x86 paging architecture in xv6.
+
+• REQ-MEM-6: Page size shall remain fixed and shall not be configurable in Version
+
+1.0.
+
+• Memory Model:
+
+– N = pages in parent process
+
+– S = page size
+
+– k = modified pages
+
+M emoryCOW = (N + k)S
+
+4.3 File Management System
+
+4.3.1 Description
+
+Responsible for file storage, access, and deletion.
+
+4.3.2 Functional Requirements
+
+• REQ-FILE-1: System shall allow file creation.
+
+• REQ-FILE-2: System shall support reading and writing files.
+
+• REQ-FILE-3: System shall allow file deletion.
+
+• REQ-FILE-4: Files shall be stored in dynamically allocated memory.
+
+4.4 Garbage Collection
+
+4.4.1 Description
+
+Garbage collector reclaims memory from deleted files.
+
+4.4.2 Functional Requirements
+
+• REQ-GC-1: System shall detect unused file blocks.
+
+• REQ-GC-2: Garbage collector shall free unused memory.
+
+• REQ-GC-3: Garbage collection shall run during system idle periods.
+
+12
+
+4.5 Dynamic Memory Compaction
+
+4.5.1 Description
+
+Compacts memory to remove fragmentation.
+
+4.5.2 Functional Requirements
+
+• REQ-DMEM-1: When files are deleted the system shall compact memory.
+
+• REQ-DMEM-2: When the system is idle full memory compaction shall occur.
+
+• REQ-DMEM-3: File references shall be updated after relocation.
+
+5 Other Nonfunctional Requirements
+
+5.1 Performance
+
+• NFR-PERF-1: The scheduler shall guarantee bounded waiting time such that no
+runnable process waits more than WM AX timer ticks under normal system load.
+
+• NFR-PERF-2: The Copy-On-Write mechanism shall reduce physical memory du-
+plication by at least 30% compared to naive fork implementation under fork-heavy
+workloads.
+
+• NFR-PERF-3: Memory compaction shall reduce fragmentation.
+
+5.2 Safety Requirements
+
+• NFR-SAFE-1: No memory corruption shall occur due to concurrent page fault
+
+handling in Copy-On-Write operations.
+
+• NFR-SAFE-2: Invalid memory access shall return an error code and shall not cause
+
+kernel panic.
+
+5.3 Security Requirements
+
+• NFR-SEC-1: No process shall access another process’s memory without explicit
+
+kernel mediation.
+
+5.4 Software Quality Attributes
+
+• NFR-QUAL-1 (Modularity): The system shall maintain architectural separation
+between the Scheduler, Memory Manager, and IPC subsystems such that modifi-
+cations to one subsystem do not require changes in unrelated subsystems.
+
+• NFR-QUAL-2 (Correctness): All implemented features shall conform to their re-
+spective functional requirements (REQ-SCH-*, REQ-MEM-*, REQ-IPC-*), and no
+kernel panic shall occur during normal operation under specified workloads.
+
+13
+
+• NFR-QUAL-3 (Extensibility): The system shall allow addition of new scheduling
+policies or IPC mechanisms without requiring redesign of the core process abstrac-
+tion.
+
+• NFR-QUAL-4 (Reliability): The system shall operate without memory corruption,
+deadlock, or kernel crash during continuous execution for at least 10,000 timer ticks
+under combined subsystem workload.
+
+A Glossary
+
+• Paging: Fixed size memory management technique.
+
+• Page Size (S): Fixed memory unit of 4096 bytes used for virtual memory paging.
+
+• Copy-On-Write: Delayed memory copying.
+
+• Garbage Collection: Automatic memory reclamation.
+
+• Memory Compaction: Reorganizing memory to reduce fragmentation.
+
+• Aging: Priority improvement over waiting time.
+
+• Starvation: Indefinite waiting.
+
+B Analysis Models
+
+UML diagrams include:
+
+• Class Diagram
+
+• Component Diagram
+
+• Composite Diagram
+
+• Activity Diagram
+
+• Sequence
+
+• Timing
+
+• Deployment Diagram
+
+• Use Case Diagram
+
+C To Be Determined List
+
+• Synchronization primitive specifications
+
+• Memory limit configuration under QEMU
+
+14
+
+D Appendices
+
+Activity Diagram
+
+15
+
+Class Diagram
+
+16
+
+Component Diagram
+
+Composite Diagram
+
+17
+
+Deployment Diagram
+
+Sequence Diagram
+
+18
+
+Timing Diagram
+
+Use Case Diagram
+
+19
+
+
