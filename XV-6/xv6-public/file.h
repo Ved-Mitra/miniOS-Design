@@ -5,9 +5,26 @@ struct file {
   char writable;
   struct pipe *pipe;
   struct inode *ip;
+  struct memfile *memf; 
   uint off;
 };
 
+
+//Maximum number of in-memory files
+#define NMEMFILE 50
+
+// In-memory file structure for MiniOS
+struct memfile {
+  uint ref_count;      // Number of open references
+  uint size;           // Size of the file in bytes
+  char *data;          // Pointer to dynamically allocated memory block
+  int is_marked_deleted;  // 1 if file is deleted but memory not yet collected
+};
+
+extern struct {
+  struct spinlock lock;
+  struct memfile memfiles[NMEMFILE];
+} mftable;
 
 // in-memory copy of an inode
 struct inode {

@@ -10,6 +10,66 @@
 #include "sleeplock.h"
 #include "file.h"
 
+struct {
+  struct spinlock lock;
+  struct memfile memfiles[NMEMFILE];
+} mftable;
+
+void memfileinit(void)
+{
+    initlock(&mftable.lock, "mftable");
+}
+
+// Stub for creating an in-memory file
+struct memfile* memfile_create(void)
+{
+  // TODO: Allocate a struct memfile (e.g., from a static table or kalloc)
+  struct memfile* mf;
+  acquire(&mftable.lock);
+  // TODO: Initialize ref_count = 1, size = 0, marked_deleted = 0
+  for(mf=mftable.memfiles;mf <mftable.memfiles+NMEMFILE;mf++)
+  {
+    if(mf->ref_count == 0 && mf->is_marked_deleted == 0)
+    {
+      mf->ref_count = 1;
+      mf->size = 0;
+      mf->is_marked_deleted = 0;
+      //Allocate one page (4096 pages) for file data
+      mf->data = kalloc();
+      if(mf->data == 0)
+      {
+        // Allocation failed, reset memfile and return 0
+        mf->ref_count = 0;
+        mf->size = 0;
+        mf->is_marked_deleted = 0;
+        release(&mftable.lock);
+        return 0;
+      }
+      release(&mftable.lock);
+      return mf; // Return pointer to new memfile
+    }
+  }
+  release(&mftable.lock);
+  return 0; //  no memfile free slot available
+}
+
+// Stub for deleting an in-memory file
+int memfile_delete(struct memfile *mf)
+{
+  if(mf == 0 || mf->ref_count < 1)
+    return -1;
+    
+  acquire(&mftable.lock);
+  // Decrement ref_count and if it reaches 0, mark as deleted for GC
+  // Instead of freeing immediately, mark as deleted for the Garbage Collector
+  mf->ref_count--;
+
+  mf->is_marked_deleted = 1; // Mark for GC to reclaim later
+  release(&mftable.lock);
+  
+  return 0;// deletionenqueued successfully
+}
+
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;

@@ -33,6 +33,12 @@ void            fileinit(void);
 int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
+struct memfile* memfile_create(void);
+int             memfile_delete(struct memfile *mf);
+void            memfileinit(void);
+
+//gc.c
+void            garbage_collect(void);
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);
