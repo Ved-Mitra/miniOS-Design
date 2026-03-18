@@ -1,6 +1,7 @@
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+#include "color.h"
 
 int
 main(int argc, char *argv[])
@@ -8,48 +9,48 @@ main(int argc, char *argv[])
   int fd1, fd2;
   int ret;
 
-  printf(1, "==== Memfile Test Started ====\n");
+  printf(1,CYAN "Memfile Test Started\n"RESET);
 
   // 1. Test creation
-  printf(1, "Testing memcreate()...\n");
+  printf(1,YELLOW "Testing memcreate()...\n" RESET);
   fd1 = memcreate();
   if(fd1 < 0){
-    printf(1, "FAILED: memcreate returned %d\n", fd1);
+    printf(1,RED "FAILED: memcreate returned %d\n" RESET, fd1);
     exit();
   }
-  printf(1, "SUCCESS: Created memfile with fd = %d\n", fd1);
+  printf(1, GREEN "SUCCESS: Created memfile with fd = %d\n" RESET, fd1);
 
   // 2. Test multiple parameter creations
   fd2 = memcreate();
   if(fd2 < 0){
-    printf(1, "FAILED: second memcreate returned %d\n", fd2);
+    printf(1,RED "FAILED: second memcreate returned %d\n" RESET, fd2);
     exit();
   }
-  printf(1, "SUCCESS: Created second memfile with fd = %d\n", fd2);
+  printf(1, GREEN "SUCCESS: Created second memfile with fd = %d\n" RESET, fd2);
 
   // 3. Test deletion of an invalid fd (should fail gracefully)
-  printf(1, "Testing invalid memdelete()...\n");
+  printf(1, YELLOW "Testing invalid memdelete()...\n" RESET);
   ret = memdelete(99); 
   if(ret < 0){
-    printf(1, "SUCCESS: Correctly rejected invalid fd 99\n");
+    printf(1, GREEN "SUCCESS: Correctly rejected invalid fd 99\n" RESET);
   } else {
-    printf(1, "FAILED: Accepted invalid fd 99\n");
+    printf(1, RED "FAILED: Accepted invalid fd 99\n" RESET);
   }
 
   // 4. Test deletion of a valid memfile
-  printf(1, "Testing valid memdelete() on fd %d...\n", fd1);
+  printf(1, YELLOW "Testing valid memdelete() on fd %d...\n" RESET, fd1);
   ret = memdelete(fd1);
   if(ret < 0){
-    printf(1, "FAILED: memdelete failed on valid fd %d\n", fd1);
+    printf(1, RED "FAILED: memdelete failed on valid fd %d\n" RESET, fd1);
   } else {
-    printf(1, "SUCCESS: memdelete worked on fd %d\n", fd1);
+    printf(1, GREEN "SUCCESS: memdelete worked on fd %d\n" RESET, fd1);
   }
 
   // 5. Test close() interoperability
-  printf(1, "Testing standard close() on memfile fd %d...\n", fd2);
+  printf(1, YELLOW "Testing standard close() on memfile fd %d...\n" RESET, fd2);
   close(fd2);
-  printf(1, "SUCCESS: close() completed on memfile\n");
+  printf(1, GREEN "SUCCESS: close() completed on memfile\n" RESET);
 
-  printf(1, "==== Memfile Test Completed successfully ====\n");
+  printf(1,CYAN "==== Memfile Test Completed successfully ====\n" RESET);
   exit();
 }

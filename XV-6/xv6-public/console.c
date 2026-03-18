@@ -15,6 +15,14 @@
 #include "proc.h"
 #include "x86.h"
 
+// State constants
+#define KBD_NORMAL 0
+#define KBD_ESC    1 //ASCII character
+#define KBD_CSI    2 //Control Sequence Introducer
+
+static int console_state = KBD_NORMAL;
+static uchar active_color = 0x07; // Default: White text (7) on Black (0)
+
 static void consputc(int);
 
 static int panicked = 0;
@@ -131,6 +139,43 @@ static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
 static void
 cgaputc(int c)
 {
+  // 1. Handle the Escape Sequence State Machine
+  if (console_state == KBD_NORMAL) {
+    if (c == 0x1B) { // Escape character '\033'
+      console_state = KBD_ESC;
+      return;
+    }
+  } else if (console_state == KBD_ESC) {
+    if (c == '[') {
+      console_state = KBD_CSI;
+    } else {
+      console_state = KBD_NORMAL;
+    }
+    return;
+  }
+  else if (console_state == KBD_CSI)
+  {
+    if (c == '0')
+      active_color = 0x07; // Reset to White
+    else if (c == '1')
+      active_color = 0x04; // Red (Standard VGA 4)
+    else if (c == '2')
+      active_color = 0x02; // Green (Standard VGA 2)
+    else if (c == '3')
+      active_color = 0x0E; // Yellow
+    else if (c == '4')
+      active_color = 0x01; // Blue
+    else if (c == '6')
+      active_color = 0x03; // Cyan
+
+    if (c == 'm' || (c >= 'a' && c <= 'z'))
+    {
+      console_state = KBD_NORMAL;
+    }
+    return;
+  }
+
+
   int pos;
 
   // Cursor position: col + 80*row.
@@ -144,7 +189,7 @@ cgaputc(int c)
   else if(c == BACKSPACE){
     if(pos > 0) --pos;
   } else
-    crt[pos++] = (c&0xff) | 0x0700;  // black on white
+    crt[pos++] = (c&0xff) | (active_color<<8);
 
   if(pos < 0 || pos > 25*80)
     panic("pos under/overflow");
@@ -159,7 +204,7 @@ cgaputc(int c)
   outb(CRTPORT+1, pos>>8);
   outb(CRTPORT, 15);
   outb(CRTPORT+1, pos);
-  crt[pos] = ' ' | 0x0700;
+  crt[pos] = ' ' | (active_color<<8);
 }
 
 void
