@@ -166,6 +166,31 @@ fileread(struct file *f, char *addr, int n)
     iunlock(f->ip);
     return r;
   }
+  if(f->type==FD_MEM)
+  {
+    struct memfile *mf=f->memf;
+    if(mf->is_marked_deleted==1)
+      return -1;
+    
+      acquire(&mftable.lock);
+      if(mf->data==0 || f->off>=mf->size)
+      {
+        release(&mftable.lock);
+        return 0; // EOF
+      }
+
+      //Prevent reading past the file's current size
+      int max_read=mf->size - f->off;
+      if(n>max_read)
+        n=max_read; 
+      if(n>0)
+      {
+        memmove(addr, mf->data + f->off, n);
+        f->off += n; //advance file offset
+      }
+      release(&mftable.lock);
+      return n;
+  }
   panic("fileread");
 }
 
@@ -208,6 +233,37 @@ filewrite(struct file *f, char *addr, int n)
       i += r;
     }
     return i == n ? n : -1;
+  }
+  if(f->type==FD_MEM)
+  {
+    struct memfile *mf=f->memf;
+    if(mf->is_marked_deleted==1)
+      return -1;
+
+    acquire(&mftable.lock);
+    // Allocate a page of memory (4096 bytes) if it doesn't exist yet
+    if(mf->data == 0) {
+       mf->data = kalloc(); 
+       if(mf->data == 0) { 
+         // System is out of memory
+         release(&mftable.lock); 
+         return -1; 
+       }
+    }
+    
+    //prevent writing beyong a single page (4096 bytes)
+    int max_write=4096+f->off;
+    if(n>max_write)
+      n=max_write;
+    if(n>0)
+    {
+      memmove(mf->data + f->off, addr, n);
+      f->off += n; //advance file offset
+      if(f->off > mf->size)
+        mf->size = f->off; //update file size if we wrote past the previous
+    }
+    release(&mftable.lock);
+    return n;
   }
   panic("filewrite");
 }

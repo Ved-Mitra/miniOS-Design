@@ -11,7 +11,8 @@
 void garbage_collect(void){
     struct memfile *mf;
     acquire(&mftable.lock);
-    for(mf = mftable.memfiles; mf < mftable.memfiles + NMEMFILE; mf++){
+    for(int i=0;i<NMEMFILE;i++){
+        mf = &mftable.memfiles[i];
         if(mf->is_marked_deleted==1 && mf->ref_count==0){
             // Free the memory associated with this memfile
             if(mf->data!=0){
@@ -22,6 +23,7 @@ void garbage_collect(void){
             mf->ref_count = 0;
             mf->size = 0;
             mf->is_marked_deleted = 0;
+            cprintf("GC: Collected memfile [%d] and freed associated memory blocks\n", i);
         }
     }
     release(&mftable.lock);
