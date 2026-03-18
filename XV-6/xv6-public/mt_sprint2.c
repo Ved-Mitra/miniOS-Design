@@ -37,13 +37,18 @@ main(int argc, char *argv[])
   printf(1, YELLOW "3. Testing read()...\n" RESET);
   // Since we just wrote to the file, the offset is at the end.
   // A read right now should return 0 (EOF).
-  printf(1, BLUE "Attempting to read from memfile at current offset (should be EOF)... as the offset has advanced to EOF due to the write operation done above.\n" RESET);
-  n = read(fd, buf, sizeof(buf));
+  // printf(1, BLUE "Attempting to read from memfile at current offset (should be EOF)... as the offset has advanced to EOF due to the write operation done above.\n" RESET);
+
+  // Wipe the buffer clean first to prove we aren't faking it
+  memset(buf, 0, sizeof(buf)); 
+  n = read(fd, buf, 28); // Read the 28 bytes back
+
   if(n == 0){
     printf(1, GREEN "SUCCESS: Read returned 0 (Expected End-Of-File since offset advanced).\n" RESET);
   } else if (n > 0) {
     buf[n] = '\0';
     printf(1, GREEN "SUCCESS: Read %d bytes: %s\n" RESET, n, buf);
+    printf(1, MAGENTA "-----> DATA RETRIEVED: '%s' <-----\n" RESET, buf);
   } else {
     printf(1, RED "FAILED: Read returned %d\n" RESET, n);
   }

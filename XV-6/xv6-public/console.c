@@ -167,6 +167,8 @@ cgaputc(int c)
       active_color = 0x01; // Blue
     else if (c == '6')
       active_color = 0x03; // Cyan
+    else if(c== '5')
+      active_color = 0x05; // Magenta
 
     if (c == 'm' || (c >= 'a' && c <= 'z'))
     {

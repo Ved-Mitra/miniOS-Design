@@ -173,6 +173,10 @@ fileread(struct file *f, char *addr, int n)
       return -1;
     
     acquire(&mftable.lock);
+
+    //just for testing phase makes the assumption that the entire file can be read in one call and that file offset starts at 0
+    f->off = 0;
+
     if(mf->data==0 || f->off>=mf->size)
     {
       release(&mftable.lock);
@@ -187,6 +191,7 @@ fileread(struct file *f, char *addr, int n)
     {
       memmove(addr, mf->data + f->off, n);
       f->off += n; //advance file offset
+      cprintf("KERNEL PROOF: Reading from physical memory address %p\n", mf->data);
     }
     release(&mftable.lock);
     return n;
@@ -261,6 +266,8 @@ filewrite(struct file *f, char *addr, int n)
       f->off += n; //advance file offset
       if(f->off > mf->size)
         mf->size = f->off; //update file size if we wrote past the previous
+      cprintf("KERNEL PROOF: kalloc() gave physical memory address %p\n", mf->data);
+      cprintf("KERNEL PROOF: Wrote text '%s' into %p\n", addr, mf->data);
     }
     release(&mftable.lock);
     return n;

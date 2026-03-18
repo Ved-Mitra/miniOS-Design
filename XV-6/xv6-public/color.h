@@ -4,3 +4,4 @@
 #define BLUE    "\033[34m"
 #define CYAN    "\033[36m"
 #define RESET   "\033[0m"
+#define MAGENTA "\033[35m"
