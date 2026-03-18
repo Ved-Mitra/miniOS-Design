@@ -442,3 +442,57 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+
+//Mini OS File Management System Calls
+int sys_memcreate(void)
+{
+  struct file *f;
+  int fd;
+  struct memfile *mf;
+  
+  //Allocate standard XV-6 file sturcture
+  if((f=filealloc())==0)
+    return -1;
+
+  //Allocate empty file descriptor for the current file
+  if((fd=fdalloc(f))<0){
+    fileclose(f);
+    return -1;
+  }
+
+  //Allocate in -memory file structure
+  if((mf=memfile_create())==0)
+  {
+    fileclose(f);
+    return -1;
+  }
+
+  // bind the in-memory file to the file structure
+  f->type = FD_MEM;
+  f->memf = mf;
+  f->readable = 1;
+  f->writable = 1;
+  return fd;
+}
+
+int sys_memdelete(void)
+{
+  struct file* f;
+  int fd;
+
+  // get the integer file descriptor 
+  if(argint(0,&fd)<0) 
+    return -1;
+
+  //convert kernel struct file 
+  if(argfd(0,&fd,&f)<0)
+    return -1;
+
+  //ensure it is actually an in memory file
+  if(f->type != FD_MEM || f->memf == 0)
+    return -1;
+
+  // mark it for garbage collector
+  return memfile_delete(f->memf);
+}

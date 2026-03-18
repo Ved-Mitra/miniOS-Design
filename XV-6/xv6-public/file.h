@@ -1,5 +1,5 @@
 struct file {
-  enum { FD_NONE, FD_PIPE, FD_INODE } type;
+  enum { FD_NONE, FD_PIPE, FD_INODE, FD_MEM} type;
   int ref; // reference count
   char readable;
   char writable;
@@ -10,9 +10,6 @@ struct file {
 };
 
 
-//Maximum number of in-memory files
-#define NMEMFILE 50
-
 // In-memory file structure for MiniOS
 struct memfile {
   uint ref_count;      // Number of open references
@@ -21,10 +18,12 @@ struct memfile {
   int is_marked_deleted;  // 1 if file is deleted but memory not yet collected
 };
 
-extern struct {
+struct mftable_t {
   struct spinlock lock;
   struct memfile memfiles[NMEMFILE];
-} mftable;
+};
+
+extern struct mftable_t mftable;
 
 // in-memory copy of an inode
 struct inode {

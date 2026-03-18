@@ -10,10 +10,7 @@
 #include "sleeplock.h"
 #include "file.h"
 
-struct {
-  struct spinlock lock;
-  struct memfile memfiles[NMEMFILE];
-} mftable;
+struct mftable_t mftable;
 
 void memfileinit(void)
 {
