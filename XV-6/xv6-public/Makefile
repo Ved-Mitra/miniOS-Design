@@ -183,7 +183,8 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_mytest\
-	_memtest\
+	_mt_sprint1\
+    _mt_sprint2\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

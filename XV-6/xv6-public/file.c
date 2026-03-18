@@ -172,24 +172,24 @@ fileread(struct file *f, char *addr, int n)
     if(mf->is_marked_deleted==1)
       return -1;
     
-      acquire(&mftable.lock);
-      if(mf->data==0 || f->off>=mf->size)
-      {
-        release(&mftable.lock);
-        return 0; // EOF
-      }
-
-      //Prevent reading past the file's current size
-      int max_read=mf->size - f->off;
-      if(n>max_read)
-        n=max_read; 
-      if(n>0)
-      {
-        memmove(addr, mf->data + f->off, n);
-        f->off += n; //advance file offset
-      }
+    acquire(&mftable.lock);
+    if(mf->data==0 || f->off>=mf->size)
+    {
       release(&mftable.lock);
-      return n;
+      return 0; // EOF
+    }
+
+    //Prevent reading past the file's current size
+    int max_read=mf->size - f->off;
+    if(n>max_read)
+      n=max_read; 
+    if(n>0)
+    {
+      memmove(addr, mf->data + f->off, n);
+      f->off += n; //advance file offset
+    }
+    release(&mftable.lock);
+    return n;
   }
   panic("fileread");
 }
