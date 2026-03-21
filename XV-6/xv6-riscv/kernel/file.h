@@ -1,3 +1,5 @@
+#define NMEMFILE     50 // Maximum number of in-memory files
+
 struct file {
   enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE, FD_MEM } type;
   int ref; // reference count
