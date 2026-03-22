@@ -456,7 +456,9 @@ scheduler(void)
       release(&p->lock);
     }
     if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
+      // nothing to run; perform background memory compaction
+      compact_memory();
+      // stop running on this core until an interrupt.
       asm volatile("wfi");
     }
   }

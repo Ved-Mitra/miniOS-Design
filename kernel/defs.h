@@ -63,6 +63,11 @@ void            ireclaim(int);
 
 // kalloc.c
 void*           kalloc(void);
+void*           kalloc_contig(int);
+void            kfree_contig(void*, int);
+void            compact_memory(void);
+void            record_rmap(uint64, pagetable_t, uint64);
+void            clear_rmap(uint64);
 void            kfree(void *);
 void            kinit(void);
 
