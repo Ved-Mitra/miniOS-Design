@@ -44,8 +44,6 @@ proc_mapstacks(pagetable_t kpgtbl)
   }
 }
 
-struct mailbox mailboxes[MAX_MBX];
-struct shm_region shm_regions[MAX_SHM];
 
 // initialize the proc table.
 void

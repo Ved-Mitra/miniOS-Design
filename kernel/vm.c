@@ -16,6 +16,8 @@ pagetable_t kernel_pagetable;
 extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
+#define PTE_COW (1L << 8)
+
 
 // Make a direct-map page table for the kernel.
 pagetable_t
@@ -299,7 +301,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
@@ -308,13 +309,15 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       continue;   // physical page hasn't been allocated
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    // remove write permission in parent, mark as COW
+    *pte &= ~PTE_W;
+    *pte |= PTE_COW;
+    // map same physical page into child (no copy)
+    if(mappages(new, i, PGSIZE, pa, (flags & ~PTE_W) | PTE_COW) != 0){
       goto err;
     }
+    // increase reference count of shared page
+    incref(pa);
   }
   return 0;
 
@@ -452,24 +455,63 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 uint64
 vmfault(pagetable_t pagetable, uint64 va, int read)
 {
-  uint64 mem;
+  uint64 pa;
+  pte_t *pte;
   struct proc *p = myproc();
 
   if (va >= p->sz)
     return 0;
+
   va = PGROUNDDOWN(va);
-  if(ismapped(pagetable, va)) {
-    return 0;
+
+  pte = walk(pagetable, va, 0);
+
+  // -------------------------------
+  // CASE 1: Page not mapped (lazy alloc)
+  // -------------------------------
+  if(pte == 0 || (*pte & PTE_V) == 0){
+    uint64 mem = (uint64)kalloc();
+    if(mem == 0)
+      return 0;
+
+    memset((void*)mem, 0, PGSIZE);
+
+    if(mappages(pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0){
+      kfree((void*)mem);
+      return 0;
+    }
+    return mem;
   }
-  mem = (uint64) kalloc();
-  if(mem == 0)
-    return 0;
-  memset((void *) mem, 0, PGSIZE);
-  if (mappages(pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0) {
-    kfree((void *)mem);
-    return 0;
+
+  // -------------------------------
+  // CASE 2: COW page fault
+  // -------------------------------
+  if((*pte & PTE_COW) && !(*pte & PTE_W)){
+    pa = PTE2PA(*pte);
+
+    if(getref(pa) > 1){
+      // multiple references — must copy
+      char *mem = kalloc();
+      if(mem == 0)
+        return 0;
+
+      memmove(mem, (char*)pa, PGSIZE);
+
+      // drop ref on old shared page
+      kfree((void*)pa);
+
+      // map fresh writable copy
+      *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V;
+    } else {
+      // last reference — promote in-place
+      *pte |= PTE_W;
+      *pte &= ~PTE_COW;
+    }
+
+    return PTE2PA(*pte);
   }
-  return mem;
+
+  return 0;
 }
 
 int
