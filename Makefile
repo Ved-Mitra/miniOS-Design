@@ -28,12 +28,8 @@ OBJS = \
   $K/sysfile.o \
   $K/kernelvec.o \
   $K/plic.o \
-<<<<<<< HEAD
   $K/virtio_disk.o \
   $K/gc.o
-=======
-  $K/virtio_disk.o
->>>>>>> origin/feature/memory-compaction
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
