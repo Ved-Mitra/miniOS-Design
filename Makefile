@@ -53,7 +53,7 @@ TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' 
 endif
 
 QEMU = qemu-system-riscv64
-MIN_QEMU_VERSION = 7.2
+MIN_QEMU_VERSION = 6.0
 
 CC = $(TOOLPREFIX)gcc
 AS = $(TOOLPREFIX)gas

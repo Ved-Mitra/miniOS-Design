@@ -495,7 +495,10 @@ scheduler(void)
       // Run the winner
       best->state = RUNNING;
       c->proc = best;
+
+      release(&wait_lock);
       swtch(&c->context, &best->context);
+      acquire(&wait_lock);
 
       // Back from process: apply CPU-bound penalty (REQ-SCH-3/5)
       // Note: cpu_ticks is incremented in trap.c on every timer interrupt.
