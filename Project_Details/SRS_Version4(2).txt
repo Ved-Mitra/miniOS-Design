@@ -1,0 +1,169 @@
+MiniOS Project – SRS Version 4 Summary
+
+Project Overview
+MiniOS is a pedagogical operating system developed by extending the xv6 UNIX-like teaching operating system. The goal of the project is to demonstrate fundamental operating system concepts including scheduling, memory management, file management, garbage collection, and dynamic memory compaction. The system runs on the xv6 kernel inside the QEMU x86 emulator and is designed primarily for educational experimentation and architectural analysis.
+
+System Purpose
+The purpose of MiniOS is to implement and evaluate core operating system mechanisms in a controlled and simplified environment. The project focuses on building modular subsystems that demonstrate real-world OS design concepts while maintaining conceptual clarity and manageable implementation complexity.
+
+Core Subsystems
+MiniOS implements the following major subsystems:
+
+1. Dynamic Priority Scheduler
+2. Paging with Copy-On-Write Memory Management
+3. File Management System
+4. Garbage Collection for Memory Reclamation
+5. Dynamic Memory Compaction
+
+These subsystems extend the base xv6 kernel while preserving its architectural structure.
+
+System Architecture
+MiniOS is built on top of the xv6 operating system and executes on simulated x86 hardware using QEMU. The system architecture follows a modular kernel design where each subsystem (Scheduler, Memory Manager, File Manager, Garbage Collector) operates independently but interacts through well-defined kernel structures such as the process table and memory allocator.
+
+Key architectural components include:
+
+* Process abstraction managed through struct proc
+* Virtual memory using paging
+* Page tables inherited from xv6
+* Kernel-level scheduling
+* Dynamic memory allocation and compaction
+* File storage using dynamically allocated memory blocks
+
+Operating Environment
+The system runs within the following environment:
+
+Kernel Base: xv6 UNIX-like teaching OS
+Hardware Platform: x86 architecture
+Execution Environment: QEMU emulator
+Programming Language: C with small portions of x86 Assembly
+Toolchain: GNU compiler and debugging tools
+Version Control: Git
+
+Users and Stakeholders
+MiniOS is intended for:
+
+* Students studying operating systems
+* Developers experimenting with xv6 kernel modifications
+* Academic evaluators reviewing OS architecture
+* Project supervisors monitoring subsystem design and implementation
+
+System Features
+
+Dynamic Priority Scheduling
+MiniOS implements a preemptive dynamic priority scheduler that adjusts process priorities over time. The scheduler prevents starvation by using an aging mechanism.
+
+Each process has a dynamic priority value p_i(t). Waiting processes gain priority through an aging parameter (alpha), while CPU-bound processes are penalized using parameter (beta).
+
+Priority update rule:
+If process is CPU-bound: p_i(t+1) = p_i(t) - beta
+If process is waiting: p_i(t+1) = p_i(t) + alpha
+
+This guarantees bounded waiting time and fair CPU allocation across processes.
+
+Default scheduling parameters:
+alpha = 1
+beta = 2
+TCPU_MAX = 10 timer ticks
+Scheduling window W = 50 timer ticks
+
+Paging with Copy-On-Write
+MiniOS implements virtual memory paging with a Copy-On-Write (COW) mechanism to optimize memory usage during process creation.
+
+When fork() is called:
+
+* Parent and child processes initially share memory pages
+* Pages are marked read-only
+* A page fault occurs if either process attempts to write to a shared page
+* The kernel then creates a private copy of that page
+
+The system maintains reference counts for each physical page.
+
+Memory model:
+N = number of pages in parent process
+S = page size (4096 bytes)
+k = number of modified pages
+
+Memory usage with COW:
+Memory = (N + k) * S
+
+This significantly reduces memory duplication for fork-heavy workloads.
+
+File Management System
+The file management subsystem provides basic file operations including creation, reading, writing, and deletion. Files are stored in dynamically allocated memory blocks within the kernel memory space.
+
+Key capabilities:
+
+* File creation
+* File reading and writing
+* File deletion
+* Dynamic memory allocation for file storage
+
+Garbage Collection
+A garbage collection mechanism automatically reclaims memory from deleted files. The garbage collector scans memory blocks and frees those that are no longer referenced by any file structures.
+
+Garbage collection runs during system idle periods to avoid interfering with active processes.
+
+Dynamic Memory Compaction
+To reduce memory fragmentation, MiniOS implements dynamic memory compaction. When files are deleted or memory fragmentation increases, memory blocks are reorganized to create contiguous free regions.
+
+During compaction:
+
+* File data blocks may be relocated
+* All file references are updated to reflect new memory locations
+* Full compaction can also run during system idle periods
+
+Nonfunctional Requirements
+
+Performance
+The scheduler guarantees bounded waiting time for runnable processes. The Copy-On-Write mechanism must reduce physical memory duplication by at least 30% compared to naive fork implementations. Memory compaction should reduce fragmentation and improve allocation efficiency.
+
+Safety
+The system must prevent memory corruption during concurrent operations such as page faults or memory compaction. Invalid memory accesses must be safely handled without causing kernel crashes.
+
+Security
+Processes must not access the memory space of other processes unless mediated by the kernel. Memory isolation is enforced through virtual memory and page table protections.
+
+Software Quality Attributes
+The system emphasizes modularity, correctness, extensibility, and reliability.
+
+Subsystems such as the scheduler, memory manager, and file manager must remain loosely coupled so that modifications in one subsystem do not require redesign of others. The system should operate reliably without kernel panic, memory corruption, or deadlocks under normal workloads.
+
+Development Process
+Development is organized into four sprints:
+
+Sprint 1 – Environment Setup and subsystem skeletons
+Sprint 2 – Core functionality implementation
+Sprint 3 – Integration and synchronization of subsystems
+Sprint 4 – Testing, performance validation, and demonstration
+
+Each team member is responsible for specific subsystems such as scheduling, memory management, dynamic memory compaction, file management, and garbage collection.
+
+Project Risks
+Potential risks include:
+
+* Scheduling parameter instability
+* Copy-On-Write race conditions
+* Memory fragmentation
+* Garbage collection timing conflicts
+* QEMU memory limitations
+
+Mitigation strategies include parameter tuning, synchronization using spinlocks, memory compaction algorithms, and controlled execution of background tasks.
+
+Analysis and Design Models
+The system architecture and behavior are documented using multiple UML diagrams including:
+
+Class Diagram
+Component Diagram
+Composite Diagram
+Activity Diagram
+Sequence Diagram
+Timing Diagram
+Deployment Diagram
+Use Case Diagram
+
+These models describe subsystem interactions, execution flow, and system deployment within the QEMU environment.
+
+Project Status
+MiniOS Version 4 represents a refined architecture where earlier IPC mechanisms were removed and replaced with a stronger focus on file management, garbage collection, and dynamic memory compaction alongside scheduling and Copy-On-Write memory management.
+
+The system is designed to demonstrate real-world OS concepts while remaining manageable for academic implementation and evaluation.

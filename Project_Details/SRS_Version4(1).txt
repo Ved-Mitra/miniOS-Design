@@ -1,0 +1,37 @@
+# SYSTEM CONTEXT: MiniOS (Version 4.0)
+You are assisting with the development of "MiniOS," a pedagogical operating system built as an extension of the MIT xv6 UNIX-like teaching OS.
+
+## 1. Environment & Tech Stack
+* **Target Architecture:** x86 Hardware
+* **Emulator:** QEMU
+* **Languages:** C and x86 Assembly 
+* **Build Tools:** GNU Toolchain (gcc, ld, make) 
+* **Constraint:** Must extend existing xv6 architecture and paging structures (fixed 4096-byte pages).
+
+## 2. Core Subsystems & Functional Requirements
+MiniOS V4 deprecates IPC and focuses on the following five core features :
+
+### A. Dynamic Priority Scheduling (Owner: Taksh Mehta)
+* **Logic:** Preemptive scheduling with aging to prevent starvation.
+* **Parameters:** Priority $p_i(t)$, aging increment $\alpha$ (default 1), CPU penalty $\beta$ (default 2) .
+* **Rule:** If CPU-bound (exceeds 10 ticks in a 50-tick window), apply penalty. If waiting, apply aging.
+
+### B. Paging with Copy-On-Write / COW (Owner: Aditya Sharma)
+* **Logic:** Processes share memory pages upon `fork()`.
+* **Mechanism:** Duplicates a page only upon modification (write operation). Uses a reference counting array (`ref_count`) to track shared pages.
+
+### C. File Management System (Owner: Ved Mitra Verma)
+* **Logic:** Responsible for dynamic file storage, access, and deletion.
+* **Features:** Create, read, write, and delete files stored in dynamically allocated memory. 
+
+### D. Garbage Collection (Owner: Ved Mitra Verma)
+* **Logic:** Automatically reclaims memory from deleted files.
+* **Mechanism:** Detects unused file blocks and frees memory. Designed to run during system idle periods to avoid interrupting active processes.
+
+### E. Dynamic Memory Compaction (Owner: Mayank Tiwari)
+* **Logic:** Reorganizes memory to eliminate fragmentation caused by file deletions.
+* **Mechanism:** Triggers upon file deletion or during idle time. Must update internal file references after physical memory relocation.
+
+## 3. Architecture & Interactions
+* **Process Execution Flow:** A process requests CPU, executes, and makes I/O or file read/write requests. If memory becomes fragmented, it triggers the Garbage Collector, followed by Memory Compaction .
+* **Subsystem Separation:** The `Scheduler`, `MemoryManager`, `FileManager`, `GarbageCollector`, and `MemoryCompactor` must maintain strict architectural separation.

@@ -1,0 +1,659 @@
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..8f01628
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1 @@
++Project_Details
+\ No newline at end of file
+diff --git a/XV-6/xv6-public/Makefile b/XV-6/xv6-public/Makefile
+index d84f027..59df086 100755
+--- a/XV-6/xv6-public/Makefile
++++ b/XV-6/xv6-public/Makefile
+@@ -4,6 +4,7 @@ OBJS = \
+ 	exec.o\
+ 	file.o\
+ 	fs.o\
++	gc.o\
+ 	ide.o\
+ 	ioapic.o\
+ 	kalloc.o\
+@@ -182,6 +183,8 @@ UPROGS=\
+ 	_wc\
+ 	_zombie\
+ 	_mytest\
++	_mt_sprint1\
++    _mt_sprint2\
+ 
+ fs.img: mkfs README $(UPROGS)
+ 	./mkfs fs.img README $(UPROGS)
+diff --git a/XV-6/xv6-public/color.h b/XV-6/xv6-public/color.h
+new file mode 100644
+index 0000000..235b637
+--- /dev/null
++++ b/XV-6/xv6-public/color.h
+@@ -0,0 +1,7 @@
++#define RED     "\033[31m"
++#define GREEN   "\033[32m"
++#define YELLOW  "\033[33m"
++#define BLUE    "\033[34m"
++#define CYAN    "\033[36m"
++#define RESET   "\033[0m"
++#define MAGENTA "\033[35m"
+\ No newline at end of file
+diff --git a/XV-6/xv6-public/console.c b/XV-6/xv6-public/console.c
+index a280d2b..d84836d 100755
+--- a/XV-6/xv6-public/console.c
++++ b/XV-6/xv6-public/console.c
+@@ -15,6 +15,14 @@
+ #include "proc.h"
+ #include "x86.h"
+ 
++// State constants
++#define KBD_NORMAL 0
++#define KBD_ESC    1 //ASCII character
++#define KBD_CSI    2 //Control Sequence Introducer
++
++static int console_state = KBD_NORMAL;
++static uchar active_color = 0x07; // Default: White text (7) on Black (0)
++
+ static void consputc(int);
+ 
+ static int panicked = 0;
+@@ -131,6 +139,45 @@ static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
+ static void
+ cgaputc(int c)
+ {
++  // 1. Handle the Escape Sequence State Machine
++  if (console_state == KBD_NORMAL) {
++    if (c == 0x1B) { // Escape character '\033'
++      console_state = KBD_ESC;
++      return;
++    }
++  } else if (console_state == KBD_ESC) {
++    if (c == '[') {
++      console_state = KBD_CSI;
++    } else {
++      console_state = KBD_NORMAL;
++    }
++    return;
++  }
++  else if (console_state == KBD_CSI)
++  {
++    if (c == '0')
++      active_color = 0x07; // Reset to White
++    else if (c == '1')
++      active_color = 0x04; // Red (Standard VGA 4)
++    else if (c == '2')
++      active_color = 0x02; // Green (Standard VGA 2)
++    else if (c == '3')
++      active_color = 0x0E; // Yellow
++    else if (c == '4')
++      active_color = 0x01; // Blue
++    else if (c == '6')
++      active_color = 0x03; // Cyan
++    else if(c== '5')
++      active_color = 0x05; // Magenta
++
++    if (c == 'm' || (c >= 'a' && c <= 'z'))
++    {
++      console_state = KBD_NORMAL;
++    }
++    return;
++  }
++
++
+   int pos;
+ 
+   // Cursor position: col + 80*row.
+@@ -144,7 +191,7 @@ cgaputc(int c)
+   else if(c == BACKSPACE){
+     if(pos > 0) --pos;
+   } else
+-    crt[pos++] = (c&0xff) | 0x0700;  // black on white
++    crt[pos++] = (c&0xff) | (active_color<<8);
+ 
+   if(pos < 0 || pos > 25*80)
+     panic("pos under/overflow");
+@@ -159,7 +206,7 @@ cgaputc(int c)
+   outb(CRTPORT+1, pos>>8);
+   outb(CRTPORT, 15);
+   outb(CRTPORT+1, pos);
+-  crt[pos] = ' ' | 0x0700;
++  crt[pos] = ' ' | (active_color<<8);
+ }
+ 
+ void
+diff --git a/XV-6/xv6-public/defs.h b/XV-6/xv6-public/defs.h
+index 82fb982..3a7b023 100755
+--- a/XV-6/xv6-public/defs.h
++++ b/XV-6/xv6-public/defs.h
+@@ -33,6 +33,12 @@ void            fileinit(void);
+ int             fileread(struct file*, char*, int n);
+ int             filestat(struct file*, struct stat*);
+ int             filewrite(struct file*, char*, int n);
++struct memfile* memfile_create(void);
++int             memfile_delete(struct memfile *mf);
++void            memfileinit(void);
++
++//gc.c
++void            garbage_collect(void);
+ 
+ // fs.c
+ void            readsb(int dev, struct superblock *sb);
+diff --git a/XV-6/xv6-public/file.c b/XV-6/xv6-public/file.c
+index 24b32c2..f8ac4d6 100755
+--- a/XV-6/xv6-public/file.c
++++ b/XV-6/xv6-public/file.c
+@@ -10,6 +10,63 @@
+ #include "sleeplock.h"
+ #include "file.h"
+ 
++struct mftable_t mftable;
++
++void memfileinit(void)
++{
++    initlock(&mftable.lock, "mftable");
++}
++
++// Stub for creating an in-memory file
++struct memfile* memfile_create(void)
++{
++  // TODO: Allocate a struct memfile (e.g., from a static table or kalloc)
++  struct memfile* mf;
++  acquire(&mftable.lock);
++  // TODO: Initialize ref_count = 1, size = 0, marked_deleted = 0
++  for(mf=mftable.memfiles;mf <mftable.memfiles+NMEMFILE;mf++)
++  {
++    if(mf->ref_count == 0 && mf->is_marked_deleted == 0)
++    {
++      mf->ref_count = 1;
++      mf->size = 0;
++      mf->is_marked_deleted = 0;
++      //Allocate one page (4096 pages) for file data
++      mf->data = kalloc();
++      if(mf->data == 0)
++      {
++        // Allocation failed, reset memfile and return 0
++        mf->ref_count = 0;
++        mf->size = 0;
++        mf->is_marked_deleted = 0;
++        release(&mftable.lock);
++        return 0;
++      }
++      release(&mftable.lock);
++      return mf; // Return pointer to new memfile
++    }
++  }
++  release(&mftable.lock);
++  return 0; //  no memfile free slot available
++}
++
++// Stub for deleting an in-memory file
++int memfile_delete(struct memfile *mf)
++{
++  if(mf == 0 || mf->ref_count < 1)
++    return -1;
++    
++  acquire(&mftable.lock);
++  // Decrement ref_count and if it reaches 0, mark as deleted for GC
++  // Instead of freeing immediately, mark as deleted for the Garbage Collector
++  mf->ref_count--;
++
++  mf->is_marked_deleted = 1; // Mark for GC to reclaim later
++  release(&mftable.lock);
++  
++  return 0;// deletionenqueued successfully
++}
++
+ struct devsw devsw[NDEV];
+ struct {
+   struct spinlock lock;
+@@ -109,6 +166,36 @@ fileread(struct file *f, char *addr, int n)
+     iunlock(f->ip);
+     return r;
+   }
++  if(f->type==FD_MEM)
++  {
++    struct memfile *mf=f->memf;
++    if(mf->is_marked_deleted==1)
++      return -1;
++    
++    acquire(&mftable.lock);
++
++    //just for testing phase makes the assumption that the entire file can be read in one call and that file offset starts at 0
++    f->off = 0;
++
++    if(mf->data==0 || f->off>=mf->size)
++    {
++      release(&mftable.lock);
++      return 0; // EOF
++    }
++
++    //Prevent reading past the file's current size
++    int max_read=mf->size - f->off;
++    if(n>max_read)
++      n=max_read; 
++    if(n>0)
++    {
++      memmove(addr, mf->data + f->off, n);
++      f->off += n; //advance file offset
++      cprintf("KERNEL PROOF: Reading from physical memory address %p\n", mf->data);
++    }
++    release(&mftable.lock);
++    return n;
++  }
+   panic("fileread");
+ }
+ 
+@@ -152,6 +239,39 @@ filewrite(struct file *f, char *addr, int n)
+     }
+     return i == n ? n : -1;
+   }
++  if(f->type==FD_MEM)
++  {
++    struct memfile *mf=f->memf;
++    if(mf->is_marked_deleted==1)
++      return -1;
++
++    acquire(&mftable.lock);
++    // Allocate a page of memory (4096 bytes) if it doesn't exist yet
++    if(mf->data == 0) {
++       mf->data = kalloc(); 
++       if(mf->data == 0) { 
++         // System is out of memory
++         release(&mftable.lock); 
++         return -1; 
++       }
++    }
++    
++    //prevent writing beyong a single page (4096 bytes)
++    int max_write=4096+f->off;
++    if(n>max_write)
++      n=max_write;
++    if(n>0)
++    {
++      memmove(mf->data + f->off, addr, n);
++      f->off += n; //advance file offset
++      if(f->off > mf->size)
++        mf->size = f->off; //update file size if we wrote past the previous
++      cprintf("KERNEL PROOF: kalloc() gave physical memory address %p\n", mf->data);
++      cprintf("KERNEL PROOF: Wrote text '%s' into %p\n", addr, mf->data);
++    }
++    release(&mftable.lock);
++    return n;
++  }
+   panic("filewrite");
+ }
+ 
+diff --git a/XV-6/xv6-public/file.h b/XV-6/xv6-public/file.h
+index 0990c82..826f7c4 100755
+--- a/XV-6/xv6-public/file.h
++++ b/XV-6/xv6-public/file.h
+@@ -1,14 +1,30 @@
+ struct file {
+-  enum { FD_NONE, FD_PIPE, FD_INODE } type;
++  enum { FD_NONE, FD_PIPE, FD_INODE, FD_MEM} type;
+   int ref; // reference count
+   char readable;
+   char writable;
+   struct pipe *pipe;
+   struct inode *ip;
++  struct memfile *memf; 
+   uint off;
+ };
+ 
+ 
++// In-memory file structure for MiniOS
++struct memfile {
++  uint ref_count;      // Number of open references
++  uint size;           // Size of the file in bytes
++  char *data;          // Pointer to dynamically allocated memory block
++  int is_marked_deleted;  // 1 if file is deleted but memory not yet collected
++};
++
++struct mftable_t {
++  struct spinlock lock;
++  struct memfile memfiles[NMEMFILE];
++};
++
++extern struct mftable_t mftable;
++
+ // in-memory copy of an inode
+ struct inode {
+   uint dev;           // Device number
+diff --git a/XV-6/xv6-public/gc.c b/XV-6/xv6-public/gc.c
+new file mode 100644
+index 0000000..4ed7f10
+--- /dev/null
++++ b/XV-6/xv6-public/gc.c
+@@ -0,0 +1,30 @@
++// Garbage collector
++
++#include "types.h"
++#include "defs.h"
++#include "param.h"
++#include "fs.h"
++#include "spinlock.h"
++#include "sleeplock.h"
++#include "file.h"
++
++void garbage_collect(void){
++    struct memfile *mf;
++    acquire(&mftable.lock);
++    for(int i=0;i<NMEMFILE;i++){
++        mf = &mftable.memfiles[i];
++        if(mf->is_marked_deleted==1 && mf->ref_count==0){
++            // Free the memory associated with this memfile
++            if(mf->data!=0){
++                kfree(mf->data);
++                mf->data = 0;
++            }
++            // Reset memfile fields
++            mf->ref_count = 0;
++            mf->size = 0;
++            mf->is_marked_deleted = 0;
++            cprintf("GC: Collected memfile [%d] and freed associated memory blocks\n", i);
++        }
++    }
++    release(&mftable.lock);
++}
+\ No newline at end of file
+diff --git a/XV-6/xv6-public/main.c b/XV-6/xv6-public/main.c
+index 9924e64..f94058b 100755
+--- a/XV-6/xv6-public/main.c
++++ b/XV-6/xv6-public/main.c
+@@ -30,6 +30,7 @@ main(void)
+   tvinit();        // trap vectors
+   binit();         // buffer cache
+   fileinit();      // file table
++  memfileinit();   // in-memory file table
+   ideinit();       // disk 
+   startothers();   // start other processors
+   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
+diff --git a/XV-6/xv6-public/mt_sprint1.c b/XV-6/xv6-public/mt_sprint1.c
+new file mode 100644
+index 0000000..f76ef78
+--- /dev/null
++++ b/XV-6/xv6-public/mt_sprint1.c
+@@ -0,0 +1,56 @@
++#include "types.h"
++#include "stat.h"
++#include "user.h"
++#include "color.h"
++
++int
++main(int argc, char *argv[])
++{
++  int fd1, fd2;
++  int ret;
++
++  printf(1,CYAN "Memfile Test Started (Sprint 1)\n"RESET);
++
++  //Test creation
++  printf(1,YELLOW "Testing memcreate()...\n" RESET);
++  fd1 = memcreate();
++  if(fd1 < 0){
++    printf(1,RED "FAILED: memcreate returned %d\n" RESET, fd1);
++    exit();
++  }
++  printf(1, GREEN "SUCCESS: Created memfile with fd = %d\n" RESET, fd1);
++
++  //Test multiple parameter creations
++  fd2 = memcreate();
++  if(fd2 < 0){
++    printf(1,RED "FAILED: second memcreate returned %d\n" RESET, fd2);
++    exit();
++  }
++  printf(1, GREEN "SUCCESS: Created second memfile with fd = %d\n" RESET, fd2);
++
++  //Test deletion of an invalid fd (should fail gracefully)
++  printf(1, YELLOW "Testing invalid memdelete()...\n" RESET);
++  ret = memdelete(99); 
++  if(ret < 0){
++    printf(1, GREEN "SUCCESS: Correctly rejected invalid fd 99\n" RESET);
++  } else {
++    printf(1, RED "FAILED: Accepted invalid fd 99\n" RESET);
++  }
++
++  //Test deletion of a valid memfile
++  printf(1, YELLOW "Testing valid memdelete() on fd %d...\n" RESET, fd1);
++  ret = memdelete(fd1);
++  if(ret < 0){
++    printf(1, RED "FAILED: memdelete failed on valid fd %d\n" RESET, fd1);
++  } else {
++    printf(1, GREEN "SUCCESS: memdelete worked on fd %d\n" RESET, fd1);
++  }
++
++  //Test close()
++  printf(1, YELLOW "Testing standard close() on memfile fd %d...\n" RESET, fd2);
++  close(fd2);
++  printf(1, GREEN "SUCCESS: close() completed on memfile\n" RESET);
++
++  printf(1,CYAN "Memfile Test Completed successfully\n" RESET);
++  exit();
++}
+diff --git a/XV-6/xv6-public/mt_sprint2.c b/XV-6/xv6-public/mt_sprint2.c
+new file mode 100644
+index 0000000..e6a7f43
+--- /dev/null
++++ b/XV-6/xv6-public/mt_sprint2.c
+@@ -0,0 +1,77 @@
++#include "types.h"
++#include "stat.h"
++#include "user.h"
++#include "color.h"
++
++int
++main(int argc, char *argv[])
++{
++  int fd;
++  char buf[50];
++  int n;
++
++  printf(1, CYAN "Memfile R/W & GC Test Started (SPRINT 2)\n" RESET);
++
++  //Test creation
++  printf(1, YELLOW "1. Testing memcreate()...\n" RESET);
++  fd = memcreate();
++  if(fd < 0){
++    printf(1, RED "FAILED: memcreate returned %d\n" RESET, fd);
++    exit();
++  }
++  printf(1, GREEN "SUCCESS: Created memfile with fd = %d\n" RESET, fd);
++
++  //Test writing to the memory file
++  printf(1, YELLOW "2. Testing write()...\n" RESET);
++  char *msg = "Hello MiniOS In-Memory File!";
++  printf(1, BLUE "Writing message to memfile: '%s'\n" RESET, msg);
++  int len = 28; // length of the message
++  n = write(fd, msg, len);
++  if(n == len){
++    printf(1, GREEN "SUCCESS: Wrote %d bytes successfully.\n" RESET, n);
++  } else {
++    printf(1, RED "FAILED: Write returned %d\n" RESET, n);
++  }
++
++  //Test reading from the memory file
++  printf(1, YELLOW "3. Testing read()...\n" RESET);
++  // Since we just wrote to the file, the offset is at the end.
++  // A read right now should return 0 (EOF).
++  // printf(1, BLUE "Attempting to read from memfile at current offset (should be EOF)... as the offset has advanced to EOF due to the write operation done above.\n" RESET);
++
++  // Wipe the buffer clean first to prove we aren't faking it
++  memset(buf, 0, sizeof(buf)); 
++  n = read(fd, buf, 28); // Read the 28 bytes back
++
++  if(n == 0){
++    printf(1, GREEN "SUCCESS: Read returned 0 (Expected End-Of-File since offset advanced).\n" RESET);
++  } else if (n > 0) {
++    buf[n] = '\0';
++    printf(1, GREEN "SUCCESS: Read %d bytes: %s\n" RESET, n, buf);
++    printf(1, MAGENTA "-----> DATA RETRIEVED: '%s' <-----\n" RESET, buf);
++  } else {
++    printf(1, RED "FAILED: Read returned %d\n" RESET, n);
++  }
++
++  //Test logical deletion
++  printf(1, YELLOW "4. Testing memdelete()...\n" RESET);
++  n = memdelete(fd);
++  if(n < 0){
++    printf(1, RED "FAILED: memdelete failed on fd %d\n" RESET, fd);
++  } else {
++    printf(1, GREEN "SUCCESS: memdelete marked file for deletion.\n" RESET);
++  }
++
++  //Test close() and trigger Garbage Collection
++  printf(1, YELLOW  "5. Closing fd to drop reference count to 0...\n" RESET);
++  close(fd);
++  printf(1, GREEN "SUCCESS: fd closed.\n" RESET);
++
++  // Sleep for a short time to allow the background Garbage Collector to run
++  // You should see the Kernel's cprintf log pop up in the terminal!
++  printf(1, YELLOW "Waiting for OS Garbage Collector to trigger...\n" RESET);
++  sleep(150);
++
++  printf(1, CYAN "Memfile Test Completed\n" RESET);
++  exit();
++}
+\ No newline at end of file
+diff --git a/XV-6/xv6-public/param.h b/XV-6/xv6-public/param.h
+index a7e90ef..1661431 100755
+--- a/XV-6/xv6-public/param.h
++++ b/XV-6/xv6-public/param.h
+@@ -11,4 +11,4 @@
+ #define LOGSIZE      (MAXOPBLOCKS*3)  // max data blocks in on-disk log
+ #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
+ #define FSSIZE       1000  // size of file system in blocks
+-
++#define NMEMFILE     50 //Maximum number of in-memory files
+diff --git a/XV-6/xv6-public/syscall.c b/XV-6/xv6-public/syscall.c
+index ee85261..e67242f 100755
+--- a/XV-6/xv6-public/syscall.c
++++ b/XV-6/xv6-public/syscall.c
+@@ -103,6 +103,8 @@ extern int sys_unlink(void);
+ extern int sys_wait(void);
+ extern int sys_write(void);
+ extern int sys_uptime(void);
++extern int sys_memcreate(void);
++extern int sys_memdelete(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -126,6 +128,8 @@ static int (*syscalls[])(void) = {
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_memcreate] sys_memcreate,
++[SYS_memdelete] sys_memdelete,
+ };
+ 
+ void
+diff --git a/XV-6/xv6-public/syscall.h b/XV-6/xv6-public/syscall.h
+index bc5f356..e239497 100755
+--- a/XV-6/xv6-public/syscall.h
++++ b/XV-6/xv6-public/syscall.h
+@@ -20,3 +20,5 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_memcreate  22
++#define SYS_memdelete  23
+\ No newline at end of file
+diff --git a/XV-6/xv6-public/sysfile.c b/XV-6/xv6-public/sysfile.c
+index bfe61b7..f8b40cb 100755
+--- a/XV-6/xv6-public/sysfile.c
++++ b/XV-6/xv6-public/sysfile.c
+@@ -442,3 +442,57 @@ sys_pipe(void)
+   fd[1] = fd1;
+   return 0;
+ }
++
++
++//Mini OS File Management System Calls
++int sys_memcreate(void)
++{
++  struct file *f;
++  int fd;
++  struct memfile *mf;
++  
++  //Allocate standard XV-6 file sturcture
++  if((f=filealloc())==0)
++    return -1;
++
++  //Allocate empty file descriptor for the current file
++  if((fd=fdalloc(f))<0){
++    fileclose(f);
++    return -1;
++  }
++
++  //Allocate in -memory file structure
++  if((mf=memfile_create())==0)
++  {
++    fileclose(f);
++    return -1;
++  }
++
++  // bind the in-memory file to the file structure
++  f->type = FD_MEM;
++  f->memf = mf;
++  f->readable = 1;
++  f->writable = 1;
++  return fd;
++}
++
++int sys_memdelete(void)
++{
++  struct file* f;
++  int fd;
++
++  // get the integer file descriptor 
++  if(argint(0,&fd)<0) 
++    return -1;
++
++  //convert kernel struct file 
++  if(argfd(0,&fd,&f)<0)
++    return -1;
++
++  //ensure it is actually an in memory file
++  if(f->type != FD_MEM || f->memf == 0)
++    return -1;
++
++  // mark it for garbage collector
++  return memfile_delete(f->memf);
++}
+\ No newline at end of file
+diff --git a/XV-6/xv6-public/user.h b/XV-6/xv6-public/user.h
+index 4f99c52..7c326d4 100755
+--- a/XV-6/xv6-public/user.h
++++ b/XV-6/xv6-public/user.h
+@@ -23,6 +23,9 @@ int getpid(void);
+ char* sbrk(int);
+ int sleep(int);
+ int uptime(void);
++int memcreate(void);
++int memdelete(int); 
++
+ 
+ // ulib.c
+ int stat(const char*, struct stat*);
+diff --git a/XV-6/xv6-public/usys.S b/XV-6/xv6-public/usys.S
+index 8bfd8a1..e1b070d 100755
+--- a/XV-6/xv6-public/usys.S
++++ b/XV-6/xv6-public/usys.S
+@@ -29,3 +29,5 @@ SYSCALL(getpid)
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++SYSCALL(memcreate)
++SYSCALL(memdelete)
+\ No newline at end of file
+diff --git a/boot.asm b/boot.asm
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/kernel.c b/kernel.c
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/linker.Id b/linker.Id
+deleted file mode 100644
+index e69de29..0000000
