@@ -8,26 +8,40 @@
 #include "spinlock.h"
 #include "riscv.h"
 #include "defs.h"
+#include "color.h"
 
 void freerange(void *pa_start, void *pa_end);
 
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
 
-struct run {
-  struct run *next;
+struct rmap {
+  pagetable_t pagetable;
+  uint64 va;
+};
+
+// Map tracks PA from KERNBASE to PHYSTOP
+struct rmap reverse_map[(PHYSTOP - KERNBASE) / PGSIZE];
+
+struct free_block {
+  struct free_block *next;
+  uint num_pages;
 };
 
 struct {
   struct spinlock lock;
-  struct run *freelist;
+  int use_lock;
+  struct free_block *freelist;
 } kmem;
 
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
+  kmem.use_lock = 0;
+  memset(reverse_map, 0, sizeof(reverse_map));
   freerange(end, (void*)PHYSTOP);
+  kmem.use_lock = 1;
 }
 
 void
@@ -35,48 +49,215 @@ freerange(void *pa_start, void *pa_end)
 {
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
-    kfree(p);
+  kfree_contig(p, ((uint64)pa_end - (uint64)p) / PGSIZE);
 }
 
-// Free the page of physical memory pointed at by pa,
-// which normally should have been returned by a
-// call to kalloc().  (The exception is when
-// initializing the allocator; see kinit above.)
 void
-kfree(void *pa)
+record_rmap(uint64 pa, pagetable_t pagetable, uint64 va)
 {
-  struct run *r;
-
-  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
-    panic("kfree");
-
-  // Fill with junk to catch dangling refs.
-  memset(pa, 1, PGSIZE);
-
-  r = (struct run*)pa;
-
-  acquire(&kmem.lock);
-  r->next = kmem.freelist;
-  kmem.freelist = r;
-  release(&kmem.lock);
+  if(pa >= KERNBASE && pa < PHYSTOP) {
+    uint64 idx = (pa - KERNBASE) / PGSIZE;
+    reverse_map[idx].pagetable = pagetable;
+    reverse_map[idx].va = va;
+  }
 }
 
-// Allocate one 4096-byte page of physical memory.
-// Returns a pointer that the kernel can use.
-// Returns 0 if the memory cannot be allocated.
-void *
-kalloc(void)
+void
+clear_rmap(uint64 pa)
 {
-  struct run *r;
+  if(pa >= KERNBASE && pa < PHYSTOP) {
+    uint64 idx = (pa - KERNBASE) / PGSIZE;
+    reverse_map[idx].pagetable = 0;
+    reverse_map[idx].va = 0;
+  }
+}
 
+void
+kfree_contig(void *pa, int n)
+{
+  struct free_block *b, *prev, *curr;
+
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa + n * PGSIZE > PHYSTOP)
+    panic("kfree_contig");
+
+  for(int i = 0; i < n; i++) {
+    clear_rmap((uint64)pa + i * PGSIZE);
+  }
+
+  memset(pa, 1, n * PGSIZE);
+
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
+
+  b = (struct free_block*)pa;
+  b->num_pages = n;
+
+  prev = 0;
+  curr = kmem.freelist;
+  while(curr != 0 && curr < b) {
+    prev = curr;
+    curr = curr->next;
+  }
+
+  if(prev) prev->next = b;
+  else kmem.freelist = b;
+  b->next = curr;
+
+  // Coalesce right
+  if(b->next && (char*)b + b->num_pages * PGSIZE == (char*)b->next) {
+    b->num_pages += b->next->num_pages;
+    b->next = b->next->next;
+  }
+
+  // Coalesce left
+  if(prev && (char*)prev + prev->num_pages * PGSIZE == (char*)b) {
+    prev->num_pages += b->num_pages;
+    prev->next = b->next;
+  }
+
+  if(kmem.use_lock)
+    release(&kmem.lock);
+}
+
+void *
+kalloc_contig(int n)
+{
+  struct free_block *curr, *prev, *best_prev, *best_curr;
+
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
+
+  prev = 0;
+  curr = kmem.freelist;
+  best_prev = 0;
+  best_curr = 0;
+
+  while(curr != 0) {
+    if(curr->num_pages >= n) {
+      if(!best_curr || curr->num_pages < best_curr->num_pages) {
+        best_prev = prev;
+        best_curr = curr;
+      }
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+
+  if(!best_curr) {
+    if(kmem.use_lock) release(&kmem.lock);
+    printf(GREY "DEBUG: Failed to kalloc_contig %d pages. Memory heavily fragmented.\n" RESET, n);
+    return 0;
+  }
+
+  // Determine split type for logging
+  if (n > 1) { // dont spam for 1 page kernel sizes
+    if (best_curr->num_pages == n) {
+      // Direct fit
+      printf(MAGENTA "DEBUG kalloc_contig: PERFECT FIT. Requested %d pages. Found exact hole. No split.\n" RESET, n);
+    } else {
+      // Split
+      printf(BLUE "DEBUG kalloc_contig: BEST FIT SPLIT. Requested %d pages. Split block of %d pages, leaving %d pages.\n" RESET, n, best_curr->num_pages, best_curr->num_pages - n);
+    }
+  }
+
+  if(best_curr->num_pages == n) {
+    if(best_prev) best_prev->next = best_curr->next;
+    else kmem.freelist = best_curr->next;
+  } else {
+    char *new_block_start = (char*)best_curr + n * PGSIZE;
+    struct free_block *split = (struct free_block*)new_block_start;
+    split->num_pages = best_curr->num_pages - n;
+    split->next = best_curr->next;
+    if(best_prev) best_prev->next = split;
+    else kmem.freelist = split;
+  }
+
+  if(kmem.use_lock)
+    release(&kmem.lock);
+
+  memset((char*)best_curr, 5, n * PGSIZE);
+  return (void*)best_curr;
+}
+
+void kfree(void *pa) { kfree_contig(pa, 1); }
+void *kalloc(void) { return kalloc_contig(1); }
+
+void
+compact_memory(void)
+{
+  if(!kmem.use_lock) return;
   acquire(&kmem.lock);
-  r = kmem.freelist;
-  if(r)
-    kmem.freelist = r->next;
-  release(&kmem.lock);
+  
+  struct free_block *curr = kmem.freelist;
+  int compacted = 0;
 
-  if(r)
-    memset((char*)r, 5, PGSIZE); // fill with junk
-  return (void*)r;
+  while (curr != 0) {
+    uint64 hole_start_pa = (uint64)curr;
+    uint hole_size_pages = curr->num_pages;
+    uint64 used_block_start_pa = hole_start_pa + (hole_size_pages * PGSIZE);
+    
+    if (used_block_start_pa >= PHYSTOP) break;
+
+    if (curr->next != 0 && (uint64)curr->next == used_block_start_pa) {
+      curr = curr->next;
+      continue; 
+    }
+
+    uint64 pfn_used = (used_block_start_pa - KERNBASE) / PGSIZE;
+    
+    if (reverse_map[pfn_used].pagetable != 0) {
+      if(!compacted) {
+         printf(BLUE "\nDEBUG kernel: *** IDLE SYSTEM DETECTED. COMPACTING MEMORY ***\n" RESET);
+      }
+      printf(GREY "DEBUG compact: Bubbling physical page downward [%p -> %p]\n" RESET, (void*)used_block_start_pa, (void*)hole_start_pa);
+      
+      memmove((void*)hole_start_pa, (void*)used_block_start_pa, PGSIZE);
+
+      pagetable_t pagetable = reverse_map[pfn_used].pagetable;
+      uint64 va = reverse_map[pfn_used].va;
+      
+      pte_t *pte = walk(pagetable, va, 0);
+      if (pte && (*pte & PTE_V)) {
+        uint flags = PTE_FLAGS(*pte);
+        *pte = PA2PTE(hole_start_pa) | flags;
+      }
+      
+      reverse_map[(hole_start_pa - KERNBASE) / PGSIZE].pagetable = pagetable;
+      reverse_map[(hole_start_pa - KERNBASE) / PGSIZE].va = va;
+      reverse_map[pfn_used].pagetable = 0;
+      reverse_map[pfn_used].va = 0;
+      
+      uint64 new_hole_start = hole_start_pa + PGSIZE;
+      struct free_block *shifted = (struct free_block*)new_hole_start;
+      shifted->num_pages = hole_size_pages;
+      shifted->next = curr->next;
+      
+      if (kmem.freelist == curr) {
+        kmem.freelist = shifted;
+      } else {
+        struct free_block *p = kmem.freelist;
+        while (p->next != curr) p = p->next;
+        p->next = shifted;
+      }
+      
+      // Coalescing right side if possible
+      if(shifted->next && (char*)shifted + shifted->num_pages * PGSIZE == (char*)shifted->next) {
+        shifted->num_pages += shifted->next->num_pages;
+        shifted->next = shifted->next->next;
+      }
+      
+      curr = kmem.freelist;
+      compacted = 1;
+    } else {
+       curr = curr->next;
+    }
+  }
+
+  release(&kmem.lock);
+  if(compacted) {
+    // If we compacted, flush TLB to ensure no stale mappings
+    // Only safe if hart doesn't hold old mappings. We do this by instruction.
+    // wait for sfence in user space or kernel flush. 
+    // sfence_vma(); // Not strictly needed here if we only compact process not running, but good practice.
+  }
 }

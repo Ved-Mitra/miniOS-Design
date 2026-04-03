@@ -1,13 +1,31 @@
+#define NMEMFILE     50 // Maximum number of in-memory files
+
 struct file {
-  enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
+  enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE, FD_MEM } type;
   int ref; // reference count
   char readable;
   char writable;
   struct pipe *pipe; // FD_PIPE
   struct inode *ip;  // FD_INODE and FD_DEVICE
+  struct memfile *memf; 
   uint off;          // FD_INODE
   short major;       // FD_DEVICE
 };
+
+// In-memory file structure for MiniOS
+struct memfile {
+  uint ref_count;      // Number of open references
+  uint size;           // Size of the file in bytes
+  char *data;          // Pointer to dynamically allocated memory block
+  int is_marked_deleted;  // 1 if file is deleted but memory not yet collected
+};
+
+struct mftable_t {
+  struct spinlock lock;
+  struct memfile memfiles[NMEMFILE];
+};
+
+extern struct mftable_t mftable;
 
 #define major(dev)  ((dev) >> 16 & 0xFFFF)
 #define minor(dev)  ((dev) & 0xFFFF)

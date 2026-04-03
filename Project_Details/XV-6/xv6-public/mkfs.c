@@ -6,10 +6,10 @@
 #include <assert.h>
 
 #define stat xv6_stat  // avoid clash with host struct stat
-#include "types.h"
-#include "fs.h"
-#include "stat.h"
-#include "param.h"
+#include "kernel/types.h"
+#include "kernel/fs.h"
+#include "kernel/stat.h"
+#include "kernel/param.h"
 
 #ifndef static_assert
 #define static_assert(a, b) do { switch (0) case 0: case (a): ; } while (0)
@@ -20,9 +20,9 @@
 // Disk layout:
 // [ boot block | sb block | log | inode blocks | free bit map | data blocks ]
 
-int nbitmap = FSSIZE/(BSIZE*8) + 1;
+int nbitmap = FSSIZE/BPB + 1;
 int ninodeblocks = NINODES / IPB + 1;
-int nlog = LOGSIZE;
+int nlog = LOGBLOCKS+1;   // Header followed by LOGBLOCKS data blocks.
 int nmeta;    // Number of meta blocks (boot, sb, nlog, inode, bitmap)
 int nblocks;  // Number of data blocks
 
@@ -40,8 +40,9 @@ void rinode(uint inum, struct dinode *ip);
 void rsect(uint sec, void *buf);
 uint ialloc(ushort type);
 void iappend(uint inum, void *p, int n);
+void die(const char *);
 
-// convert to intel byte order
+// convert to riscv byte order
 ushort
 xshort(ushort x)
 {
@@ -85,15 +86,14 @@ main(int argc, char *argv[])
   assert((BSIZE % sizeof(struct dirent)) == 0);
 
   fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC, 0666);
-  if(fsfd < 0){
-    perror(argv[1]);
-    exit(1);
-  }
+  if(fsfd < 0)
+    die(argv[1]);
 
   // 1 fs block = 1 disk sector
   nmeta = 2 + nlog + ninodeblocks + nbitmap;
   nblocks = FSSIZE - nmeta;
 
+  sb.magic = FSMAGIC;
   sb.size = xint(FSSIZE);
   sb.nblocks = xint(nblocks);
   sb.ninodes = xint(NINODES);
@@ -102,7 +102,7 @@ main(int argc, char *argv[])
   sb.inodestart = xint(2+nlog);
   sb.bmapstart = xint(2+nlog+ninodeblocks);
 
-  printf("nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
+  printf("nmeta %d (boot, super, log blocks %u, inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
          nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
 
   freeblock = nmeta;     // the first free block that we can allocate
@@ -128,25 +128,32 @@ main(int argc, char *argv[])
   iappend(rootino, &de, sizeof(de));
 
   for(i = 2; i < argc; i++){
-    assert(index(argv[i], '/') == 0);
+    // get rid of "user/"
+    char *shortname;
+    if(strncmp(argv[i], "user/", 5) == 0)
+      shortname = argv[i] + 5;
+    else
+      shortname = argv[i];
+    
+    assert(index(shortname, '/') == 0);
 
-    if((fd = open(argv[i], 0)) < 0){
-      perror(argv[i]);
-      exit(1);
-    }
+    if((fd = open(argv[i], 0)) < 0)
+      die(argv[i]);
 
     // Skip leading _ in name when writing to file system.
     // The binaries are named _rm, _cat, etc. to keep the
     // build operating system from trying to execute them
     // in place of system binaries like rm and cat.
-    if(argv[i][0] == '_')
-      ++argv[i];
+    if(shortname[0] == '_')
+      shortname += 1;
 
+    assert(strlen(shortname) <= DIRSIZ);
+    
     inum = ialloc(T_FILE);
 
     bzero(&de, sizeof(de));
     de.inum = xshort(inum);
-    strncpy(de.name, argv[i], DIRSIZ);
+    strncpy(de.name, shortname, DIRSIZ);
     iappend(rootino, &de, sizeof(de));
 
     while((cc = read(fd, buf, sizeof(buf))) > 0)
@@ -170,14 +177,10 @@ main(int argc, char *argv[])
 void
 wsect(uint sec, void *buf)
 {
-  if(lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE){
-    perror("lseek");
-    exit(1);
-  }
-  if(write(fsfd, buf, BSIZE) != BSIZE){
-    perror("write");
-    exit(1);
-  }
+  if(lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE)
+    die("lseek");
+  if(write(fsfd, buf, BSIZE) != BSIZE)
+    die("write");
 }
 
 void
@@ -210,14 +213,10 @@ rinode(uint inum, struct dinode *ip)
 void
 rsect(uint sec, void *buf)
 {
-  if(lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE){
-    perror("lseek");
-    exit(1);
-  }
-  if(read(fsfd, buf, BSIZE) != BSIZE){
-    perror("read");
-    exit(1);
-  }
+  if(lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE)
+    die("lseek");
+  if(read(fsfd, buf, BSIZE) != BSIZE)
+    die("read");
 }
 
 uint
@@ -241,7 +240,7 @@ balloc(int used)
   int i;
 
   printf("balloc: first %d blocks have been allocated\n", used);
-  assert(used < BSIZE*8);
+  assert(used < BPB);
   bzero(buf, BSIZE);
   for(i = 0; i < used; i++){
     buf[i/8] = buf[i/8] | (0x1 << (i%8));
@@ -294,4 +293,11 @@ iappend(uint inum, void *xp, int n)
   }
   din.size = xint(off);
   winode(inum, &din);
+}
+
+void
+die(const char *s)
+{
+  perror(s);
+  exit(1);
 }

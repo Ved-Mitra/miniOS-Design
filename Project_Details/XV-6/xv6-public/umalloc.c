@@ -1,7 +1,7 @@
-#include "types.h"
-#include "stat.h"
-#include "user.h"
-#include "param.h"
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "user/user.h"
+#include "kernel/param.h"
 
 // Memory allocator by Kernighan and Ritchie,
 // The C programming Language, 2nd ed.  Section 8.7.
@@ -52,7 +52,7 @@ morecore(uint nu)
   if(nu < 4096)
     nu = 4096;
   p = sbrk(nu * sizeof(Header));
-  if(p == (char*)-1)
+  if(p == SBRK_ERROR)
     return 0;
   hp = (Header*)p;
   hp->s.size = nu;

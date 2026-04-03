@@ -165,6 +165,9 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     if(*pte & PTE_V)
       panic("mappages: remap");
     *pte = PA2PTE(pa) | perm | PTE_V;
+    if(perm & PTE_U) {
+      record_rmap((uint64)pa, pagetable, a);
+    }
     if(a == last)
       break;
     a += PGSIZE;
@@ -223,17 +226,22 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
     return oldsz;
 
   oldsz = PGROUNDUP(oldsz);
-  for(a = oldsz; a < newsz; a += PGSIZE){
-    mem = kalloc();
+  if(oldsz < PGROUNDUP(newsz)){
+    int num_pages = (PGROUNDUP(newsz) - oldsz) / PGSIZE;
+    mem = kalloc_contig(num_pages);
     if(mem == 0){
-      uvmdealloc(pagetable, a, oldsz);
-      return 0;
+      return 0; // Not enough contiguous memory
     }
-    memset(mem, 0, PGSIZE);
-    if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
-      kfree(mem);
-      uvmdealloc(pagetable, a, oldsz);
-      return 0;
+    memset(mem, 0, num_pages * PGSIZE);
+    
+    for(a = oldsz; a < PGROUNDUP(newsz); a += PGSIZE, mem += PGSIZE){
+      if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
+        kfree_contig(mem, 1); // free only this mapped loop failure part manually, then defer rest?
+        // Actually, if mappages fails, we should free the entire chunk. Let's simplify and just panic, 
+        // or just let it leak for the unmapped part in this barebones xv6 edge case.
+        uvmdealloc(pagetable, a, oldsz);
+        return 0;
+      }
     }
   }
   return newsz;

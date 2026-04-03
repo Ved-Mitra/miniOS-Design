@@ -12,17 +12,14 @@
 // * Do not use the buffer after calling brelse.
 // * Only one process at a time can use a buffer,
 //     so do not keep them longer than necessary.
-//
-// The implementation uses two state flags internally:
-// * B_VALID: the buffer data has been read from the disk.
-// * B_DIRTY: the buffer data has been modified
-//     and needs to be written to disk.
+
 
 #include "types.h"
-#include "defs.h"
 #include "param.h"
 #include "spinlock.h"
 #include "sleeplock.h"
+#include "riscv.h"
+#include "defs.h"
 #include "fs.h"
 #include "buf.h"
 
@@ -31,7 +28,8 @@ struct {
   struct buf buf[NBUF];
 
   // Linked list of all buffers, through prev/next.
-  // head.next is most recently used.
+  // Sorted by how recently the buffer was used.
+  // head.next is most recent, head.prev is least.
   struct buf head;
 } bcache;
 
@@ -42,7 +40,6 @@ binit(void)
 
   initlock(&bcache.lock, "bcache");
 
-//PAGEBREAK!
   // Create linked list of buffers
   bcache.head.prev = &bcache.head;
   bcache.head.next = &bcache.head;
@@ -75,14 +72,13 @@ bget(uint dev, uint blockno)
     }
   }
 
-  // Not cached; recycle an unused buffer.
-  // Even if refcnt==0, B_DIRTY indicates a buffer is in use
-  // because log.c has modified it but not yet committed it.
+  // Not cached.
+  // Recycle the least recently used (LRU) unused buffer.
   for(b = bcache.head.prev; b != &bcache.head; b = b->prev){
-    if(b->refcnt == 0 && (b->flags & B_DIRTY) == 0) {
+    if(b->refcnt == 0) {
       b->dev = dev;
       b->blockno = blockno;
-      b->flags = 0;
+      b->valid = 0;
       b->refcnt = 1;
       release(&bcache.lock);
       acquiresleep(&b->lock);
@@ -99,8 +95,9 @@ bread(uint dev, uint blockno)
   struct buf *b;
 
   b = bget(dev, blockno);
-  if((b->flags & B_VALID) == 0) {
-    iderw(b);
+  if(!b->valid) {
+    virtio_disk_rw(b, 0);
+    b->valid = 1;
   }
   return b;
 }
@@ -111,12 +108,11 @@ bwrite(struct buf *b)
 {
   if(!holdingsleep(&b->lock))
     panic("bwrite");
-  b->flags |= B_DIRTY;
-  iderw(b);
+  virtio_disk_rw(b, 1);
 }
 
 // Release a locked buffer.
-// Move to the head of the MRU list.
+// Move to the head of the most-recently-used list.
 void
 brelse(struct buf *b)
 {
@@ -139,6 +135,19 @@ brelse(struct buf *b)
   
   release(&bcache.lock);
 }
-//PAGEBREAK!
-// Blank page.
+
+void
+bpin(struct buf *b) {
+  acquire(&bcache.lock);
+  b->refcnt++;
+  release(&bcache.lock);
+}
+
+void
+bunpin(struct buf *b) {
+  acquire(&bcache.lock);
+  b->refcnt--;
+  release(&bcache.lock);
+}
+
 

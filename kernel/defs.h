@@ -33,6 +33,12 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
+struct memfile* memfile_create(void);
+int             memfile_delete(struct memfile *mf);
+void            memfileinit(void);
+
+// gc.c
+void            garbage_collect(void);
 
 // fs.c
 void            fsinit(int);
@@ -57,6 +63,11 @@ void            ireclaim(int);
 
 // kalloc.c
 void*           kalloc(void);
+void*           kalloc_contig(int);
+void            kfree_contig(void*, int);
+void            compact_memory(void);
+void            record_rmap(uint64, pagetable_t, uint64);
+void            clear_rmap(uint64);
 void            kfree(void *);
 void            kinit(void);
 

@@ -13,6 +13,56 @@
 #include "stat.h"
 #include "proc.h"
 
+struct mftable_t mftable;
+
+void
+memfileinit(void)
+{
+  initlock(&mftable.lock, "mftable");
+}
+
+// Stub for creating an in-memory file
+struct memfile* memfile_create(void)
+{
+  struct memfile* mf;
+  acquire(&mftable.lock);
+  for(mf = mftable.memfiles; mf < mftable.memfiles + NMEMFILE; mf++){
+    if(mf->ref_count == 0 && mf->is_marked_deleted == 0){
+      mf->ref_count = 1;
+      mf->size = 0;
+      mf->is_marked_deleted = 0;
+      //Allocate one page (4096 bytes) for file data
+      mf->data = kalloc();
+      if(mf->data == 0){
+        // Allocation failed
+        mf->ref_count = 0;
+        mf->size = 0;
+        mf->is_marked_deleted = 0;
+        release(&mftable.lock);
+        return 0;
+      }
+      release(&mftable.lock);
+      return mf;
+    }
+  }
+  release(&mftable.lock);
+  return 0; // no free slot
+}
+
+// Stub for deleting an in-memory file
+int memfile_delete(struct memfile *mf)
+{
+  if(mf == 0 || mf->ref_count < 1)
+    return -1;
+    
+  acquire(&mftable.lock);
+  mf->ref_count--;
+  mf->is_marked_deleted = 1; // Mark for GC to reclaim later
+  release(&mftable.lock);
+  
+  return 0;
+}
+
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
@@ -122,6 +172,33 @@ fileread(struct file *f, uint64 addr, int n)
     if((r = readi(f->ip, 1, addr, f->off, n)) > 0)
       f->off += r;
     iunlock(f->ip);
+  } else if(f->type == FD_MEM){
+    struct memfile *mf = f->memf;
+    if(mf->is_marked_deleted == 1)
+      return -1;
+    
+    acquire(&mftable.lock);
+    f->off = 0; // assuming entire file read for testing
+    
+    if(mf->data == 0 || f->off >= mf->size){
+      release(&mftable.lock);
+      return 0; // EOF
+    }
+    
+    int max_read = mf->size - f->off;
+    if(n > max_read)
+      n = max_read;
+      
+    if(n > 0){
+      if(copyout(myproc()->pagetable, addr, mf->data + f->off, n) < 0){
+        release(&mftable.lock);
+        return -1;
+      }
+      f->off += n;
+      printf("KERNEL PROOF: Reading from physical memory address %p\n", mf->data);
+    }
+    release(&mftable.lock);
+    return n;
   } else {
     panic("fileread");
   }
@@ -171,6 +248,37 @@ filewrite(struct file *f, uint64 addr, int n)
       i += r;
     }
     ret = (i == n ? n : -1);
+  } else if(f->type == FD_MEM){
+    struct memfile *mf = f->memf;
+    if(mf->is_marked_deleted == 1)
+      return -1;
+    
+    acquire(&mftable.lock);
+    if(mf->data == 0){
+      mf->data = kalloc();
+      if(mf->data == 0){
+        release(&mftable.lock);
+        return -1;
+      }
+    }
+    
+    int max_write = 4096 - f->off;
+    if(n > max_write)
+      n = max_write;
+      
+    if(n > 0){
+      if(copyin(myproc()->pagetable, mf->data + f->off, addr, n) < 0){
+        release(&mftable.lock);
+        return -1;
+      }
+      f->off += n;
+      if(f->off > mf->size)
+        mf->size = f->off;
+      printf("KERNEL PROOF: kalloc() gave physical memory address %p\n", mf->data);
+      printf("KERNEL PROOF: Wrote text into %p\n", mf->data);
+    }
+    release(&mftable.lock);
+    ret = n;
   } else {
     panic("filewrite");
   }

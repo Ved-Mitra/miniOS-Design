@@ -1,8 +1,21 @@
-#include "types.h"
-#include "stat.h"
-#include "fcntl.h"
-#include "user.h"
-#include "x86.h"
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "kernel/fcntl.h"
+#include "kernel/riscv.h"
+#include "kernel/vm.h"
+#include "user/user.h"
+
+//
+// wrapper so that it's OK if main() does not call exit().
+//
+void
+start(int argc, char **argv)
+{
+  int r;
+  extern int main(int argc, char **argv);
+  r = main(argc, argv);
+  exit(r);
+}
 
 char*
 strcpy(char *s, const char *t)
@@ -36,7 +49,11 @@ strlen(const char *s)
 void*
 memset(void *dst, int c, uint n)
 {
-  stosb(dst, c, n);
+  char *cdst = (char *) dst;
+  int i;
+  for(i = 0; i < n; i++){
+    cdst[i] = c;
+  }
   return dst;
 }
 
@@ -100,7 +117,45 @@ memmove(void *vdst, const void *vsrc, int n)
 
   dst = vdst;
   src = vsrc;
-  while(n-- > 0)
-    *dst++ = *src++;
+  if (src > dst) {
+    while(n-- > 0)
+      *dst++ = *src++;
+  } else {
+    dst += n;
+    src += n;
+    while(n-- > 0)
+      *--dst = *--src;
+  }
   return vdst;
 }
+
+int
+memcmp(const void *s1, const void *s2, uint n)
+{
+  const char *p1 = s1, *p2 = s2;
+  while (n-- > 0) {
+    if (*p1 != *p2) {
+      return *p1 - *p2;
+    }
+    p1++;
+    p2++;
+  }
+  return 0;
+}
+
+void *
+memcpy(void *dst, const void *src, uint n)
+{
+  return memmove(dst, src, n);
+}
+
+char *
+sbrk(int n) {
+  return sys_sbrk(n, SBRK_EAGER);
+}
+
+char *
+sbrklazy(int n) {
+  return sys_sbrk(n, SBRK_LAZY);
+}
+
