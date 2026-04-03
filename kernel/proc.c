@@ -463,6 +463,13 @@ scheduler(void)
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
+        // REQ-SCH-4, NFR-PERF-1: Bounded Waiting Time
+        if(p->wait_ticks >= SCHED_WMAX){
+          if(best) release(&best->lock);
+          best = p;
+          // Starvation priority: immediate selection
+          break;
+        }
         if(best == 0 || p->priority > best->priority){
           if(best) release(&best->lock);
           best = p;
@@ -490,6 +497,7 @@ scheduler(void)
       // Run the winner
       best->state = RUNNING;
       c->proc = best;
+      best->wait_ticks = 0; // Reset waiting time (NFR-PERF-1)
 
       release(&wait_lock);
       swtch(&c->context, &best->context);
@@ -518,6 +526,17 @@ scheduler(void)
       }
     } else {
       release(&wait_lock);
+      
+      // REQ-DMEM-1, REQ-DMEM-2: System is idle, run GC and Compaction
+      garbage_collect();
+      
+      static int idle_ticks = 0;
+      idle_ticks++;
+      if(idle_ticks > 1000) {
+        idle_ticks = 0;
+        compact_memory();
+      }
+
       asm volatile("wfi");
     }
   } // end of for(;;)

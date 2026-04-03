@@ -14,6 +14,7 @@
 #define SCHED_DEFAULT   60    // starting priority for all new processes
 #define SCHED_MAX      100    // maximum allowed priority
 #define SCHED_MIN        0    // minimum allowed priority
+#define SCHED_WMAX     100    // maximum allowed waiting ticks (REQ-SCH-4, NFR-PERF-1)
 
 // -----------------------------------------------------------------
 // CPU-bound detection window parameters (REQ-SCH-5, REQ-SCH-6, REQ-SCH-7)
