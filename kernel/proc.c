@@ -487,28 +487,15 @@ scheduler(void)
         }
       }
 
-      // Debug log (Sprint 2 requirement)
-      // printf("sched: pid=%d name=%s pri=%d wait=%d cpu=%d\n",
-      //        best->pid, best->name, best->priority,
-      //        best->wait_ticks, best->cpu_ticks);
-
       // Run the winner
       best->state = RUNNING;
       c->proc = best;
 
       release(&wait_lock);
       swtch(&c->context, &best->context);
-      acquire(&wait_lock);
       
-      // Simulate CPU and System ticks for QEMU compatibility
+      // Update process-level ticks for priority scheduler logic
       best->cpu_ticks++;
-      acquire(&tickslock);
-      ticks++;
-      wakeup(&ticks);
-      release(&tickslock);
-
-      // Back from process: apply CPU-bound penalty (REQ-SCH-3/5)
-      // Note: cpu_ticks is incremented in trap.c on every timer interrupt.
       window_tick++;
 
       if(best->cpu_ticks > SCHED_TCPU_MAX){
@@ -516,31 +503,24 @@ scheduler(void)
         if(best->priority < SCHED_MIN) best->priority = SCHED_MIN;
       }
 
+      c->proc = 0;
+      release(&best->lock);
+
       // Window reset every SCHED_W cycles (REQ-SCH-5)
+      // Performed out-of-lock to avoid process lock inversion deadlocks on SMP
       if(window_tick >= SCHED_W){
         window_tick = 0;
         for(p = proc; p < &proc[NPROC]; p++){
-          if(p != best){
-            acquire(&p->lock);
-            p->cpu_ticks = 0;
-            release(&p->lock);
-          } else {
-            // best->lock is already held
-            p->cpu_ticks = 0;
-          }
+          acquire(&p->lock);
+          p->cpu_ticks = 0;
+          release(&p->lock);
         }
       }
-
-      c->proc = 0;
-      release(&best->lock);
-    }
-    
-    release(&wait_lock);
-
-    if(best == 0) {
+    } else {
+      release(&wait_lock);
       asm volatile("wfi");
     }
-  }
+  } // end of for(;;)
 }
 
 // Switch to scheduler.  Must hold only p->lock
