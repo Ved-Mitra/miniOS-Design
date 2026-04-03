@@ -1,4 +1,4 @@
-hK=kernel
+K=kernel
 U=user
 
 OBJS = \
