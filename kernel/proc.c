@@ -499,6 +499,13 @@ scheduler(void)
       release(&wait_lock);
       swtch(&c->context, &best->context);
       acquire(&wait_lock);
+      
+      // Simulate CPU and System ticks for QEMU compatibility
+      best->cpu_ticks++;
+      acquire(&tickslock);
+      ticks++;
+      wakeup(&ticks);
+      release(&tickslock);
 
       // Back from process: apply CPU-bound penalty (REQ-SCH-3/5)
       // Note: cpu_ticks is incremented in trap.c on every timer interrupt.
