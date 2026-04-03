@@ -5,6 +5,7 @@
 #include "defs.h"
 
 volatile static int started = 0;
+extern void meminit(void);
 
 // start() jumps here in supervisor mode on all CPUs.
 void
@@ -17,6 +18,7 @@ main()
     printf("xv6 kernel is booting\n");
     printf("\n");
     kinit();         // physical page allocator
+    meminit();
     kvminit();       // create kernel page table
     kvminithart();   // turn on paging
     procinit();      // process table

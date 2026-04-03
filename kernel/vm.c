@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
+#include "kalloc.h"
 
 /*
  * the kernel's page table.
@@ -493,30 +494,38 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   // CASE 2: COW page fault
   // -------------------------------
   if((*pte & PTE_COW) && !(*pte & PTE_W)){
-    pa = PTE2PA(*pte);
+  pa = PTE2PA(*pte);
 
-    // 🔥 if multiple references → copy
-    if(getref(pa) > 1){
-      char *mem = kalloc();
-      if(mem == 0)
-        return 0;
+  acquire(&kmem.lock);
 
-      memmove(mem, (char*)pa, PGSIZE);
+  int idx = PA2IDX(pa);
+  int ref = ref_count[idx];
 
-      // decrease ref count of old page
-      kfree((void*)pa);
+  if(ref > 1){
+    // leave shared ownership
+    ref_count[idx]--;
 
-      // map new page with write permission
-      *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V;
-    }
-    else{
-      // 🔥 only one reference → no need to copy
-      *pte |= PTE_W;
-      *pte &= ~PTE_COW;
-    }
+    release(&kmem.lock);
 
-    return PTE2PA(*pte);
+    char *mem = kalloc();
+    if(mem == 0)
+      return 0;
+
+    memmove(mem, (char*)pa, PGSIZE);
+
+    // map new page (writable)
+    *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V;
   }
+  else{
+    // only owner → no copy
+    release(&kmem.lock);
+
+    *pte |= PTE_W;
+    *pte &= ~PTE_COW;
+  }
+
+  return PTE2PA(*pte);
+}
 
   return 0;
 }

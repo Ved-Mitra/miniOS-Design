@@ -99,7 +99,9 @@ kalloc(void)
 
   if(r){
     memset((char*)r, 5, PGSIZE); // fill with junk
-    ref_count[PA2IDX(r)] = 1;    // 🔥 new page has 1 reference
+     acquire(&kmem.lock);
+     ref_count[PA2IDX(r)] = 1;
+     release(&kmem.lock);  // 🔥 new page has 1 reference
   }
 
   return (void*)r;
@@ -121,6 +123,24 @@ getref(uint64 pa)
   int count;
   acquire(&kmem.lock);
   count = ref_count[PA2IDX(pa)];
+  release(&kmem.lock);
+  return count;
+}
+// 🔥 Decrement reference count
+int
+decref(uint64 pa)
+{
+  int count;
+  acquire(&kmem.lock);
+
+  int idx = PA2IDX(pa);
+
+  if(ref_count[idx] <= 0)
+    panic("decref: invalid");
+
+  ref_count[idx]--;
+  count = ref_count[idx];
+
   release(&kmem.lock);
   return count;
 }
