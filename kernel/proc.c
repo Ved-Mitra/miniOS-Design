@@ -488,9 +488,9 @@ scheduler(void)
       }
 
       // Debug log (Sprint 2 requirement)
-      printf("sched: pid=%d name=%s pri=%d wait=%d cpu=%d\n",
-             best->pid, best->name, best->priority,
-             best->wait_ticks, best->cpu_ticks);
+      // printf("sched: pid=%d name=%s pri=%d wait=%d cpu=%d\n",
+      //        best->pid, best->name, best->priority,
+      //        best->wait_ticks, best->cpu_ticks);
 
       // Run the winner
       best->state = RUNNING;
