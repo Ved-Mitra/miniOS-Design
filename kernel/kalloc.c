@@ -26,6 +26,15 @@ struct rmap reverse_map[(PHYSTOP - KERNBASE) / PGSIZE];
 struct free_block {
   struct free_block *next;
   uint num_pages;
+
+// 🔥 Reference count array
+int ref_count[PHYSTOP / PGSIZE];
+
+// 🔥 Convert physical address to index
+#define PA2IDX(pa) (((uint64)(pa)) / PGSIZE)
+
+struct run {
+  struct run *next;
 };
 
 struct {
@@ -42,6 +51,12 @@ kinit()
   memset(reverse_map, 0, sizeof(reverse_map));
   freerange(end, (void*)PHYSTOP);
   kmem.use_lock = 1;
+
+  // 🔥 Initialize all ref counts to 0
+  for(int i = 0; i < PHYSTOP / PGSIZE; i++)
+    ref_count[i] = 0;
+
+  freerange(end, (void*)PHYSTOP);
 }
 
 void
@@ -260,4 +275,103 @@ compact_memory(void)
     // wait for sfence in user space or kernel flush. 
     // sfence_vma(); // Not strictly needed here if we only compact process not running, but good practice.
   }
+}
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE){
+    ref_count[PA2IDX(p)] = 1;  // temporarily mark as used
+    kfree(p);                  // will decrement to 0 and add to freelist
+  }
+}
+
+// Free the page of physical memory pointed at by pa.
+void
+kfree(void *pa)
+{
+  struct run *r;
+
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    panic("kfree");
+
+  acquire(&kmem.lock);
+
+  int idx = PA2IDX(pa);
+
+  if(ref_count[idx] <= 0)
+    panic("kfree: ref_count already zero");
+
+  ref_count[idx]--;
+
+  if(ref_count[idx] > 0){
+    // 🔥 still shared → do not free
+    release(&kmem.lock);
+    return;
+  }
+
+  // 🔥 actually free now
+  memset(pa, 1, PGSIZE);
+
+  r = (struct run*)pa;
+  r->next = kmem.freelist;
+  kmem.freelist = r;
+
+  release(&kmem.lock);
+}
+
+// Allocate one 4096-byte page of physical memory.
+void *
+kalloc(void)
+{
+  struct run *r;
+
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  if(r)
+    kmem.freelist = r->next;
+  release(&kmem.lock);
+
+  if(r){
+    memset((char*)r, 5, PGSIZE); // fill with junk
+     acquire(&kmem.lock);
+     ref_count[PA2IDX(r)] = 1;
+     release(&kmem.lock);  // 🔥 new page has 1 reference
+  }
+
+  return (void*)r;
+}
+
+// 🔥 Increment reference count
+void
+incref(uint64 pa)
+{
+  acquire(&kmem.lock);
+  ref_count[PA2IDX(pa)]++;
+  release(&kmem.lock);
+}
+
+// 🔥 Get reference count
+int
+getref(uint64 pa)
+{
+  int count;
+  acquire(&kmem.lock);
+  count = ref_count[PA2IDX(pa)];
+  release(&kmem.lock);
+  return count;
+}
+// 🔥 Decrement reference count
+int
+decref(uint64 pa)
+{
+  int count;
+  acquire(&kmem.lock);
+
+  int idx = PA2IDX(pa);
+
+  if(ref_count[idx] <= 0)
+    panic("decref: invalid");
+
+  ref_count[idx]--;
+  count = ref_count[idx];
+
+  release(&kmem.lock);
+  return count;
 }

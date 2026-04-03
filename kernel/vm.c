@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
+#include "kalloc.h"
 
 /*
  * the kernel's page table.
@@ -15,7 +16,11 @@ pagetable_t kernel_pagetable;
 
 extern char etext[];  // kernel.ld sets this to end of kernel code.
 
+extern void incref(uint64 pa);
+extern int getref(uint64 pa);
+
 extern char trampoline[]; // trampoline.S
+#define PTE_COW (1L << 8)
 
 // Make a direct-map page table for the kernel.
 pagetable_t
@@ -242,6 +247,17 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
         uvmdealloc(pagetable, a, oldsz);
         return 0;
       }
+  for(a = oldsz; a < newsz; a += PGSIZE){
+    mem = kalloc();
+    if(mem == 0){
+      uvmdealloc(pagetable, a, oldsz);
+      return 0;
+    }
+    memset(mem, 0, PGSIZE);
+    if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
+      kfree(mem);
+      uvmdealloc(pagetable, a, oldsz);
+      return 0;
     }
   }
   return newsz;
@@ -323,6 +339,19 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       kfree(mem);
       goto err;
     }
+    // remove write permission in parent
+*pte &= ~PTE_W;
+
+// mark as COW (you must define this flag)
+*pte |= PTE_COW;
+
+// map same physical page into child
+if(mappages(new, i, PGSIZE, pa, (flags & ~PTE_W) | PTE_COW) != 0){
+  goto err;
+}
+
+// increase reference count
+incref(pa);
   }
   return 0;
 
@@ -461,6 +490,8 @@ uint64
 vmfault(pagetable_t pagetable, uint64 va, int read)
 {
   uint64 mem;
+  uint64 pa;
+  pte_t *pte;
   struct proc *p = myproc();
 
   if (va >= p->sz)
@@ -480,6 +511,67 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   return mem;
 }
 
+
+  va = PGROUNDDOWN(va);
+
+  pte = walk(pagetable, va, 0);
+
+  // -------------------------------
+  // CASE 1: Page not mapped (lazy alloc)
+  // -------------------------------
+  if(pte == 0 || (*pte & PTE_V) == 0){
+    uint64 mem = (uint64)kalloc();
+    if(mem == 0)
+      return 0;
+
+    memset((void*)mem, 0, PGSIZE);
+
+    if(mappages(pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0){
+      kfree((void*)mem);
+      return 0;
+    }
+    return mem;
+  }
+
+  // -------------------------------
+  // CASE 2: COW page fault
+  // -------------------------------
+  if((*pte & PTE_COW) && !(*pte & PTE_W)){
+  pa = PTE2PA(*pte);
+
+  acquire(&kmem.lock);
+
+  int idx = PA2IDX(pa);
+  int ref = ref_count[idx];
+
+  if(ref > 1){
+    // leave shared ownership
+    ref_count[idx]--;
+
+    release(&kmem.lock);
+
+    char *mem = kalloc();
+    if(mem == 0)
+      return 0;
+
+    memmove(mem, (char*)pa, PGSIZE);
+
+    // map new page (writable)
+    *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V;
+  }
+  else{
+    // only owner → no copy
+    release(&kmem.lock);
+
+    *pte |= PTE_W;
+    *pte &= ~PTE_COW;
+  }
+
+  return PTE2PA(*pte);
+}
+
+  return 0;
+}
 int
 ismapped(pagetable_t pagetable, uint64 va)
 {
