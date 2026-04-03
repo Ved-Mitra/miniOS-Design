@@ -30,7 +30,6 @@ OBJS = \
   $K/plic.o \
   $K/virtio_disk.o \
   $K/gc.o
-  $K/mem.o \
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -150,12 +149,12 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_mt_sprint1\
 	$U/_mt_sprint2\
-	$U/_mytest
-    $U/_cowtest\
+	$U/_mytest\
+	$U/_cowtest\
 	$U/_memtest\
 	$U/_cowstress\
 	$U/_cowfork\
-	$U/_cowmem\
+	$U/_cowmem
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

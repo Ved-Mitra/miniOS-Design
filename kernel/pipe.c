@@ -31,7 +31,7 @@ pipealloc(struct file **f0, struct file **f1)
     goto bad;
 
   // ✅ REPLACED kalloc
-  if((pi = (struct pipe*)mem_alloc(MEM_PIPE)) == 0)
+  if((pi = (struct pipe*)kalloc()) == 0)
     goto bad;
 
   pi->readopen = 1;
@@ -78,7 +78,7 @@ pipeclose(struct pipe *pi, int writable)
     release(&pi->lock);
 
     // ✅ REPLACED kfree
-    mem_free((void*)pi);
+    kfree((void*)pi);
 
   } else
     release(&pi->lock);

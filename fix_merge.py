@@ -1,4 +1,24 @@
-// Physical memory allocator, for user processes,
+import re
+
+# Fix Makefile
+with open("Makefile", "r") as f:
+    text = f.read()
+
+text = re.sub(r"\$K/virtio_disk\.o \\\n\s*\$K/gc\.o\n\s*\$K/mem\.o \\\n", 
+              "$K/virtio_disk.o \\\n  $K/gc.o\n", text)
+              
+text = re.sub(r"\$U/_mytest\n\s*\$U/_cowtest\\\n", 
+              "$U/_mytest\\\n\t$U/_cowtest\\\n", text)
+
+text = re.sub(r"\$U/_cowmem\\\n", "$U/_cowmem\n", text)
+
+with open("Makefile", "w") as f:
+    f.write(text)
+
+print("Makefile fixed")
+
+# Write new kalloc.c
+kalloc_content = """// Physical memory allocator, for user processes,
 // kernel stacks, page-table pages,
 // and pipe buffers. Allocates whole 4096-byte pages.
 
@@ -182,16 +202,16 @@ kalloc_contig(int n)
 
   if(!best_curr) {
     if(kmem.use_lock) release(&kmem.lock);
-    printf(GREY "DEBUG: Failed to kalloc_contig %d pages. Memory heavily fragmented.\n" RESET, n);
+    printf(GREY "DEBUG: Failed to kalloc_contig %d pages. Memory heavily fragmented.\\n" RESET, n);
     return 0;
   }
 
   // Determine split type for logging
   if (n > 1) { // dont spam for 1 page kernel sizes
     if (best_curr->num_pages == n) {
-      printf(MAGENTA "DEBUG kalloc_contig: PERFECT FIT. Requested %d pages. Found exact hole. No split.\n" RESET, n);
+      printf(MAGENTA "DEBUG kalloc_contig: PERFECT FIT. Requested %d pages. Found exact hole. No split.\\n" RESET, n);
     } else {
-      printf(BLUE "DEBUG kalloc_contig: BEST FIT SPLIT. Requested %d pages. Split block of %d pages, leaving %d pages.\n" RESET, n, best_curr->num_pages, best_curr->num_pages - n);
+      printf(BLUE "DEBUG kalloc_contig: BEST FIT SPLIT. Requested %d pages. Split block of %d pages, leaving %d pages.\\n" RESET, n, best_curr->num_pages, best_curr->num_pages - n);
     }
   }
 
@@ -247,9 +267,9 @@ compact_memory(void)
     
     if (reverse_map[pfn_used].pagetable != 0 && ref_count[pfn_used] == 1) { // Only compact unshared pages for safety
       if(!compacted) {
-         printf(BLUE "\nDEBUG kernel: *** IDLE SYSTEM DETECTED. COMPACTING MEMORY ***\n" RESET);
+         printf(BLUE "\\nDEBUG kernel: *** IDLE SYSTEM DETECTED. COMPACTING MEMORY ***\\n" RESET);
       }
-      printf(GREY "DEBUG compact: Bubbling physical page downward [%p -> %p]\n" RESET, (void*)used_block_start_pa, (void*)hole_start_pa);
+      printf(GREY "DEBUG compact: Bubbling physical page downward [%p -> %p]\\n" RESET, (void*)used_block_start_pa, (void*)hole_start_pa);
       
       // Swap references
       int idx_hole = PA2IDX(hole_start_pa);
@@ -343,3 +363,106 @@ decref(uint64 pa)
   release(&kmem.lock);
   return count;
 }
+"""
+with open("kernel/kalloc.c", "w") as f:
+    f.write(kalloc_content)
+
+print("kalloc.c fixed")
+
+# Fix vm.c
+with open("kernel/vm.c", "r") as f:
+    vm_text = f.read()
+
+# Fix uvmalloc
+uvmalloc_correct = """uint64
+uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
+{
+  char *mem;
+  uint64 a;
+
+  if(newsz < oldsz)
+    return oldsz;
+
+  oldsz = PGROUNDUP(oldsz);
+  for(a = oldsz; a < newsz; a += PGSIZE){
+    mem = kalloc();
+    if(mem == 0){
+      uvmdealloc(pagetable, a, oldsz);
+      return 0;
+    }
+    memset(mem, 0, PGSIZE);
+    if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
+      kfree(mem);
+      uvmdealloc(pagetable, a, oldsz);
+      return 0;
+    }
+  }
+  return newsz;
+}"""
+vm_text = re.sub(r"uint64\s*uvmalloc\(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm\).*?return newsz;\n}", uvmalloc_correct, vm_text, flags=re.DOTALL)
+
+# Fix vmfault
+vmfault_correct = """uint64
+vmfault(pagetable_t pagetable, uint64 va, int read)
+{
+  uint64 pa;
+  pte_t *pte;
+  struct proc *p = myproc();
+
+  if (va >= p->sz)
+    return 0;
+  va = PGROUNDDOWN(va);
+
+  pte = walk(pagetable, va, 0);
+
+  // -------------------------------
+  // CASE 1: Page not mapped (lazy alloc)
+  // -------------------------------
+  if(pte == 0 || (*pte & PTE_V) == 0){
+    uint64 mem = (uint64)kalloc();
+    if(mem == 0)
+      return 0;
+
+    memset((void*)mem, 0, PGSIZE);
+
+    if(mappages(pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0){
+      kfree((void*)mem);
+      return 0;
+    }
+    return mem;
+  }
+
+  // -------------------------------
+  // CASE 2: COW page fault
+  // -------------------------------
+  if((*pte & PTE_COW) && !(*pte & PTE_W)){
+    pa = PTE2PA(*pte);
+    int ref = getref(pa);
+
+    if(ref > 1){
+      decref(pa);
+      char *mem = kalloc();
+      if(mem == 0)
+        return 0;
+      memmove(mem, (char*)pa, PGSIZE);
+      *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V;
+    } else {
+      *pte |= PTE_W;
+      *pte &= ~PTE_COW;
+    }
+    
+    // Always refresh rmap so compaction knows about the page!
+    record_rmap(PTE2PA(*pte), pagetable, va);
+
+    return PTE2PA(*pte);
+  }
+
+  return 0;
+}"""
+vm_text = re.sub(r"uint64\s*vmfault\(pagetable_t pagetable, uint64 va, int read\).*?return 0;\n}", vmfault_correct, vm_text, flags=re.DOTALL)
+
+with open("kernel/vm.c", "w") as f:
+    f.write(vm_text)
+
+print("vm.c fixed")
+

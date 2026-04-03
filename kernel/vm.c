@@ -18,6 +18,7 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern void incref(uint64 pa);
 extern int getref(uint64 pa);
+extern int decref(uint64 pa);
 
 extern char trampoline[]; // trampoline.S
 #define PTE_COW (1L << 8)
@@ -231,22 +232,6 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
     return oldsz;
 
   oldsz = PGROUNDUP(oldsz);
-  if(oldsz < PGROUNDUP(newsz)){
-    int num_pages = (PGROUNDUP(newsz) - oldsz) / PGSIZE;
-    mem = kalloc_contig(num_pages);
-    if(mem == 0){
-      return 0; // Not enough contiguous memory
-    }
-    memset(mem, 0, num_pages * PGSIZE);
-    
-    for(a = oldsz; a < PGROUNDUP(newsz); a += PGSIZE, mem += PGSIZE){
-      if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
-        kfree_contig(mem, 1); // free only this mapped loop failure part manually, then defer rest?
-        // Actually, if mappages fails, we should free the entire chunk. Let's simplify and just panic, 
-        // or just let it leak for the unmapped part in this barebones xv6 edge case.
-        uvmdealloc(pagetable, a, oldsz);
-        return 0;
-      }
   for(a = oldsz; a < newsz; a += PGSIZE){
     mem = kalloc();
     if(mem == 0){
@@ -323,35 +308,29 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       continue;   // page table entry hasn't been allocated
     if((*pte & PTE_V) == 0)
       continue;   // physical page hasn't been allocated
+      
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    
+    // CoW: Clear PTE_W and set PTE_COW if it was writable
+    if (flags & PTE_W) {
+      flags = (flags & ~PTE_W) | PTE_COW;
+      *pte = PA2PTE(pa) | flags;
+    }
+
+    // map same physical page into child page table
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
       goto err;
     }
-    // remove write permission in parent
-*pte &= ~PTE_W;
 
-// mark as COW (you must define this flag)
-*pte |= PTE_COW;
-
-// map same physical page into child
-if(mappages(new, i, PGSIZE, pa, (flags & ~PTE_W) | PTE_COW) != 0){
-  goto err;
-}
-
-// increase reference count
-incref(pa);
+    // increase reference count
+    incref(pa);
   }
   return 0;
 
@@ -489,29 +468,12 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 uint64
 vmfault(pagetable_t pagetable, uint64 va, int read)
 {
-  uint64 mem;
   uint64 pa;
   pte_t *pte;
   struct proc *p = myproc();
 
   if (va >= p->sz)
     return 0;
-  va = PGROUNDDOWN(va);
-  if(ismapped(pagetable, va)) {
-    return 0;
-  }
-  mem = (uint64) kalloc();
-  if(mem == 0)
-    return 0;
-  memset((void *) mem, 0, PGSIZE);
-  if (mappages(p->pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0) {
-    kfree((void *)mem);
-    return 0;
-  }
-  return mem;
-}
-
-
   va = PGROUNDDOWN(va);
 
   pte = walk(pagetable, va, 0);
@@ -537,38 +499,26 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   // CASE 2: COW page fault
   // -------------------------------
   if((*pte & PTE_COW) && !(*pte & PTE_W)){
-  pa = PTE2PA(*pte);
+    pa = PTE2PA(*pte);
+    int ref = getref(pa);
 
-  acquire(&kmem.lock);
+    if(ref > 1){
+      decref(pa);
+      char *mem = kalloc();
+      if(mem == 0)
+        return 0;
+      memmove(mem, (char*)pa, PGSIZE);
+      *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V;
+    } else {
+      *pte |= PTE_W;
+      *pte &= ~PTE_COW;
+    }
+    
+    // Always refresh rmap so compaction knows about the page!
+    record_rmap(PTE2PA(*pte), pagetable, va);
 
-  int idx = PA2IDX(pa);
-  int ref = ref_count[idx];
-
-  if(ref > 1){
-    // leave shared ownership
-    ref_count[idx]--;
-
-    release(&kmem.lock);
-
-    char *mem = kalloc();
-    if(mem == 0)
-      return 0;
-
-    memmove(mem, (char*)pa, PGSIZE);
-
-    // map new page (writable)
-    *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V;
+    return PTE2PA(*pte);
   }
-  else{
-    // only owner → no copy
-    release(&kmem.lock);
-
-    *pte |= PTE_W;
-    *pte &= ~PTE_COW;
-  }
-
-  return PTE2PA(*pte);
-}
 
   return 0;
 }
