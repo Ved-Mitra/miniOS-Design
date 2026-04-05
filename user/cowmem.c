@@ -1,5 +1,6 @@
 #include "kernel/types.h"
 #include "user/user.h"
+#include "user/color.h"
 
 #define PGSIZE 4096
 #define NPAGES 20
@@ -7,7 +8,7 @@
 int
 main(void)
 {
-  printf("=== COW Memory Pressure Test ===\n");
+  printf(CYAN "=== COW Memory Pressure Test ===\n" RESET);
 
   char *pages[NPAGES];
 
@@ -15,7 +16,7 @@ main(void)
   for(int i = 0; i < NPAGES; i++){
     pages[i] = sbrk(PGSIZE);
     if(pages[i] == (void*)-1){
-      printf("alloc failed\n");
+      printf(RED "alloc failed\n" RESET);
       exit(1);
     }
     pages[i][0] = i;
@@ -36,11 +37,11 @@ main(void)
   // parent checks values unchanged
   for(int i = 0; i < NPAGES; i++){
     if(pages[i][0] != i){
-      printf("ERROR at page %d\n", i);
+      printf(RED "ERROR at page %d\n" RESET, i);
       exit(1);
     }
   }
 
-  printf("=== PASS ===\n");
+  printf(GREEN "=== PASS ===\n" RESET);
   exit(0);
 }
