@@ -23,6 +23,7 @@ extern int decref(uint64 pa);
 extern char trampoline[]; // trampoline.S
 #define PTE_COW (1L << 8)
 
+
 // Make a direct-map page table for the kernel.
 pagetable_t
 kvmmake(void)
@@ -330,6 +331,14 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     }
 
     // increase reference count
+    // remove write permission in parent, mark as COW
+    *pte &= ~PTE_W;
+    *pte |= PTE_COW;
+    // map same physical page into child (no copy)
+    if(mappages(new, i, PGSIZE, pa, (flags & ~PTE_W) | PTE_COW) != 0){
+      goto err;
+    }
+    // increase reference count of shared page
     incref(pa);
   }
   return 0;
@@ -503,13 +512,15 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
     int ref = getref(pa);
 
     if(ref > 1){
-      decref(pa);
+      // multiple references — must copy
       char *mem = kalloc();
       if(mem == 0)
         return 0;
       memmove(mem, (char*)pa, PGSIZE);
-      *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V;
+      *pte = PA2PTE(mem) | PTE_W | PTE_U | PTE_R | PTE_V | PTE_U;
+      decref(pa);
     } else {
+      // last reference — promote in-place
       *pte |= PTE_W;
       *pte &= ~PTE_COW;
     }
@@ -522,6 +533,7 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
 
   return 0;
 }
+
 int
 ismapped(pagetable_t pagetable, uint64 va)
 {

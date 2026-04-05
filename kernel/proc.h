@@ -104,4 +104,11 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  // -----------------------------------------------------------------
+  // MiniOS: Dynamic Priority Scheduler fields (REQ-SCH-1)
+  // -----------------------------------------------------------------
+  int priority;                // Dynamic priority (SCHED_MIN–SCHED_MAX)
+  int wait_ticks;              // Ticks waiting in RUNNABLE state
+  int cpu_ticks;               // Ticks spent running on CPU in current window
 };

@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "sched.h"
 
 struct cpu cpus[NCPU];
 
@@ -42,6 +43,7 @@ proc_mapstacks(pagetable_t kpgtbl)
     kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
   }
 }
+
 
 // initialize the proc table.
 void
@@ -145,6 +147,13 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+
+  // -----------------------------------------------------------------
+  // MiniOS: Initialise priority scheduler fields (REQ-SCH-1)
+  // -----------------------------------------------------------------
+  p->priority   = SCHED_DEFAULT;
+  p->wait_ticks = 0;
+  p->cpu_ticks  = 0;
 
   return p;
 }
@@ -290,6 +299,14 @@ kfork(void)
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
+  // -----------------------------------------------------------------
+  // MiniOS: Child inherits parent's priority at fork time (REQ-SCH-1),
+  // but resets tick counters for a clean slate.
+  // -----------------------------------------------------------------
+  np->priority   = p->priority;
+  np->wait_ticks = 0;
+  np->cpu_ticks  = 0;
+
   pid = np->pid;
 
   release(&np->lock);
@@ -424,8 +441,10 @@ kwait(uint64 addr)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *p, *best;
   struct cpu *c = mycpu();
+  // window_tick tracks cycles elapsed in current window (REQ-SCH-5).
+  static int window_tick = 0;
 
   c->proc = 0;
   for(;;){
@@ -437,31 +456,90 @@ scheduler(void)
     intr_on();
     intr_off();
 
-    int found = 0;
+    acquire(&wait_lock); // must be acquired before any p->lock.
+    
+    // --- Phase 1: find highest-priority RUNNABLE process (REQ-SCH-1) ---
+    best = 0;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
+        // REQ-SCH-4, NFR-PERF-1: Bounded Waiting Time
+        if(p->wait_ticks >= SCHED_WMAX){
+          if(best) release(&best->lock);
+          best = p;
+          // Starvation priority: immediate selection
+          break;
+        }
+        if(best == 0 || p->priority > best->priority){
+          if(best) release(&best->lock);
+          best = p;
+          continue; // keep p->lock held for best
+        }
       }
       release(&p->lock);
     }
-    if(found == 0) {
-      // nothing to run; perform background memory compaction
-      compact_memory();
-      // stop running on this core until an interrupt.
+    // Note: if best is found, its p->lock is HELD.
+
+    if(best) {
+      // --- Phase 2: age skipped RUNNABLE procs (REQ-SCH-2) ---
+      for(p = proc; p < &proc[NPROC]; p++){
+        if(p != best){
+          acquire(&p->lock);
+          if(p->state == RUNNABLE){
+            p->wait_ticks++;
+            p->priority += SCHED_ALPHA;
+            if(p->priority > SCHED_MAX) p->priority = SCHED_MAX;
+          }
+          release(&p->lock);
+        }
+      }
+
+      // Run the winner
+      best->state = RUNNING;
+      c->proc = best;
+      best->wait_ticks = 0; // Reset waiting time (NFR-PERF-1)
+
+      release(&wait_lock);
+      swtch(&c->context, &best->context);
+      
+      // Update process-level ticks for priority scheduler logic
+      best->cpu_ticks++;
+      window_tick++;
+
+      if(best->cpu_ticks > SCHED_TCPU_MAX){
+        best->priority -= SCHED_BETA;
+        if(best->priority < SCHED_MIN) best->priority = SCHED_MIN;
+      }
+
+      c->proc = 0;
+      release(&best->lock);
+
+      // Window reset every SCHED_W cycles (REQ-SCH-5)
+      // Performed out-of-lock to avoid process lock inversion deadlocks on SMP
+      if(window_tick >= SCHED_W){
+        window_tick = 0;
+        for(p = proc; p < &proc[NPROC]; p++){
+          acquire(&p->lock);
+          p->cpu_ticks = 0;
+          release(&p->lock);
+        }
+      }
+    } else {
+      release(&wait_lock);
+      
+      // REQ-DMEM-1, REQ-DMEM-2: System is idle, run GC and Compaction
+      garbage_collect();
+      
+      static int idle_ticks = 0;
+      idle_ticks++;
+      if(idle_ticks > 1000) {
+        idle_ticks = 0;
+        compact_memory();
+      }
+
       asm volatile("wfi");
     }
-  }
+  } // end of for(;;)
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -686,7 +764,8 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    printf("%d %s %s", p->pid, state, p->name);
+    printf("%d %s %s pri=%d wait=%d cpu=%d", p->pid, state, p->name,
+           p->priority, p->wait_ticks, p->cpu_ticks);
     printf("\n");
   }
 }

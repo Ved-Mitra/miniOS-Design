@@ -73,6 +73,12 @@ void            record_rmap(uint64, pagetable_t, uint64);
 void            clear_rmap(uint64);
 void            kfree(void *);
 void            kinit(void);
+void            incref(uint64);
+int             getref(uint64);
+
+// gc.c
+void            garbage_collect(void);
+void            compact_memory(void);
 
 // log.c
 void            initlog(int, struct superblock*);
