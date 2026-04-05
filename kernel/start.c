@@ -57,10 +57,10 @@ timerinit()
   
   // NOTE: sstc extension (stimecmp) requires QEMU 7.2+.
   // local environment uses QEMU 6.2.0, so this is disabled.
-  // w_menvcfg(r_menvcfg() | (1L << 63)); 
+  w_menvcfg(r_menvcfg() | (1L << 63)); 
   
   // allow supervisor to use stimecmp and time.
   w_mcounteren(r_mcounteren() | 2);
   
-  // w_stimecmp(r_time() + 1000000);
+  w_stimecmp(r_time() + 1000000);
 }

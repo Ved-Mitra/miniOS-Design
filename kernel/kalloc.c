@@ -69,8 +69,13 @@ record_rmap(uint64 pa, pagetable_t pagetable, uint64 va)
 {
   if(pa >= KERNBASE && pa < PHYSTOP) {
     uint64 idx = (pa - KERNBASE) / PGSIZE;
-    reverse_map[idx].pagetable = pagetable;
-    reverse_map[idx].va = va;
+    if (reverse_map[idx].pagetable == 0) {
+      reverse_map[idx].pagetable = pagetable;
+      reverse_map[idx].va = va;
+    } else if (reverse_map[idx].pagetable != pagetable) {
+      // Mark as uncompactable (used by multiple page tables)
+      reverse_map[idx].pagetable = (pagetable_t)-1;
+    }
   }
 }
 
@@ -245,12 +250,8 @@ compact_memory(void)
 
     uint64 pfn_used = (used_block_start_pa - KERNBASE) / PGSIZE;
     
-    if (reverse_map[pfn_used].pagetable != 0 && ref_count[pfn_used] == 1) { // Only compact unshared pages for safety
-      if(!compacted) {
-         printf(BLUE "\nDEBUG kernel: *** IDLE SYSTEM DETECTED. COMPACTING MEMORY ***\n" RESET);
-      }
-      printf(GREY "DEBUG compact: Bubbling physical page downward [%p -> %p]\n" RESET, (void*)used_block_start_pa, (void*)hole_start_pa);
-      
+    if (reverse_map[pfn_used].pagetable != 0 && reverse_map[pfn_used].pagetable != (pagetable_t)-1 && ref_count[pfn_used] == 1) { // Only compact unshared pages for safety
+      // Remove debug printf inside kmem.lock to prevent polling-based deadlocks
       // Swap references
       int idx_hole = PA2IDX(hole_start_pa);
       int idx_used = PA2IDX(used_block_start_pa);
@@ -283,8 +284,9 @@ compact_memory(void)
         kmem.freelist = shifted;
       } else {
         struct free_block *p = kmem.freelist;
-        while (p->next != curr) p = p->next;
-        p->next = shifted;
+        while (p != 0 && p->next != curr) p = p->next;
+        if(p) p->next = shifted;
+        else kmem.freelist = shifted; // Fallback to avoid infinite loop
       }
       
       // Coalescing right side if possible

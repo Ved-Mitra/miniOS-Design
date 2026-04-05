@@ -1,0 +1,6 @@
+spawn make qemu
+expect "$ "
+send "memcomp_test\r"
+expect "SUCCESS:"
+expect "finished!"
+send "\x01x"
