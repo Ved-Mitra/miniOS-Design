@@ -22,24 +22,23 @@ int main(int argc, char *argv[])
         printf("  Child %d exiting immediately to create a memory hole.\n", i);
         exit(0);
       } else {
-        int delay = 0;
-        while(delay < 100000000) delay++;
+        pause(5); // Sleep to let odd children run later
         printf("  Child %d exiting after hold.\n", i);
         exit(0);
       }
     }
   }
 
-  // Allow children to start
-  int d = 0; while(d < 100000000) d++;
+  // Allow children to finish their prints and operations
+  pause(20);
 
   printf(YELLOW "\nPhase 2: Allocating a 3-page block. Watch kernel output for 'best_fit' placement!\n" RESET);
   char *test_mem = sbrk(3 * 4096);
   test_mem[0] = 'X'; 
   
   printf(YELLOW "\nPhase 3: Triggering compaction. CPU IDLE.\n" RESET);
-  // Long pause pushes scheduler to IDLE
-  d = 0; while(d < 500000000) d++;
+  // Give it enough pause for idle_ticks to accumulate and compaction to run
+  pause(120);
 
   printf(YELLOW "\nPhase 4: Allocating a 12-page block.\n" RESET);
   char *large_mem = sbrk(12 * 4096);

@@ -431,7 +431,7 @@ kwait(uint64 addr)
   }
 }
 
-static int idle_ticks = 0;
+static uint idle_start_tick = 0;
 
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -500,7 +500,7 @@ scheduler(void)
       best->state = RUNNING;
       c->proc = best;
       best->wait_ticks = 0; // Reset waiting time (NFR-PERF-1)
-      idle_ticks = 0; // Reset idle timer since OS is active
+      idle_start_tick = 0; // Reset idle timer since OS is active
 
       release(&wait_lock);
       swtch(&c->context, &best->context);
@@ -530,20 +530,22 @@ scheduler(void)
     } else {
       release(&wait_lock);
       
+      uint current_tick;
       acquire(&tickslock);
-      idle_ticks++;
+      current_tick = ticks;
       release(&tickslock);
       
-      if(idle_ticks > 10) {
-        // REQ-DMEM-1, REQ-DMEM-2: System is idle, run GC and Compaction
-        garbage_collect();
-      }
-      
-      if(idle_ticks > 1000) {
-        acquire(&tickslock);
-        idle_ticks = 0;
-        release(&tickslock);
-        compact_memory();
+      if(idle_start_tick == 0) {
+        idle_start_tick = current_tick;
+      } else {
+        if((current_tick - idle_start_tick) >= 5) { // 0.5s idle
+          // REQ-DMEM-1, REQ-DMEM-2: System securely idle, run GC
+          garbage_collect();
+        }
+        if((current_tick - idle_start_tick) >= 10) { // 1.0s idle
+          compact_memory();
+          idle_start_tick = current_tick; // reset so it loops occasionally
+        }
       }
 
       asm volatile("wfi");
