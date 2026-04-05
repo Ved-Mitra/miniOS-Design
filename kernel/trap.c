@@ -82,7 +82,10 @@ usertrap(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
-    if(p) p->cpu_ticks++;
+    if(p){
+      p->cpu_ticks++;
+      p->total_cpu_ticks++;
+    }
     yield();
   }
 
@@ -156,6 +159,7 @@ kerneltrap()
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2 && myproc() != 0){
     myproc()->cpu_ticks++;
+    myproc()->total_cpu_ticks++;
     yield();
   }
 

@@ -24,6 +24,26 @@ main(void)
   dup(0);  // stderr
 
   for(;;){
+    /*
+    printf("init: starting priority_test\n");
+    pid = fork();
+    if(pid == 0){
+      exec("priority_test", (char *[]){ "priority_test", 0 });
+      printf("init: exec priority_test failed\n");
+      exit(1);
+    }
+    while(wait(0) != pid);
+
+    printf("init: starting fairness_test\n");
+    pid = fork();
+    if(pid == 0){
+      exec("fairness_test", (char *[]){ "fairness_test", 0 });
+      printf("init: exec fairness_test failed\n");
+      exit(1);
+    }
+    while(wait(0) != pid);
+    */
+
     printf("init: starting sh\n");
     pid = fork();
     if(pid < 0){
@@ -37,17 +57,12 @@ main(void)
     }
 
     for(;;){
-      // this call to wait() returns if the shell exits,
-      // or if a parentless process exits.
       wpid = wait((int *) 0);
       if(wpid == pid){
-        // the shell exited; restart it.
         break;
       } else if(wpid < 0){
         printf("init: wait returned an error\n");
         exit(1);
-      } else {
-        // it was a parentless process; do nothing.
       }
     }
   }

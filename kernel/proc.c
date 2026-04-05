@@ -154,6 +154,9 @@ found:
   p->priority   = SCHED_DEFAULT;
   p->wait_ticks = 0;
   p->cpu_ticks  = 0;
+  p->total_cpu_ticks = 0;
+  p->total_wait_ticks = 0;
+  p->start_tick = ticks;
 
   return p;
 }
@@ -487,6 +490,7 @@ scheduler(void)
           acquire(&p->lock);
           if(p->state == RUNNABLE){
             p->wait_ticks++;
+            p->total_wait_ticks++;
             p->priority += SCHED_ALPHA;
             if(p->priority > SCHED_MAX) p->priority = SCHED_MAX;
           }
@@ -504,6 +508,7 @@ scheduler(void)
       
       // Update process-level ticks for priority scheduler logic
       best->cpu_ticks++;
+      best->total_cpu_ticks++;
       window_tick++;
 
       if(best->cpu_ticks > SCHED_TCPU_MAX){
@@ -768,4 +773,64 @@ procdump(void)
            p->priority, p->wait_ticks, p->cpu_ticks);
     printf("\n");
   }
+}
+
+// Set a process's priority.
+// Returns the old priority, or -1 if the pid is not found.
+int
+set_priority(int pid, int priority)
+{
+  struct proc *p;
+  int old_priority = -1;
+
+  if(priority < SCHED_MIN || priority > SCHED_MAX)
+    return -1;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid){
+      old_priority = p->priority;
+      p->priority = priority;
+      release(&p->lock);
+      // If we increase priority, we might want to yield? 
+      // But for testing purposes, just setting it is enough.
+      return old_priority;
+    }
+    release(&p->lock);
+  }
+  return -1;
+}
+
+// Retrieve statistics for all active processes.
+// addr is a user-space pointer to an array of struct p_info.
+// n is the maximum number of elements in the array.
+// Returns the number of processes copied.
+int
+get_proc_info(uint64 addr, int n)
+{
+  struct proc *p;
+  struct p_info info;
+  int count = 0;
+  uint64 dst = addr;
+
+  for(p = proc; p < &proc[NPROC] && count < n; p++){
+    acquire(&p->lock);
+    if(p->state != UNUSED){
+      info.pid = p->pid;
+      info.priority = p->priority;
+      info.state = (int)p->state;
+      info.wait_ticks = p->wait_ticks;
+      info.cpu_ticks = p->cpu_ticks;
+      release(&p->lock);
+      
+      if(copyout(myproc()->pagetable, dst, (char *)&info, sizeof(info)) < 0)
+        return -1;
+      
+      dst += sizeof(info);
+      count++;
+    } else {
+      release(&p->lock);
+    }
+  }
+  return count;
 }

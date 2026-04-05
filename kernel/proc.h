@@ -81,6 +81,14 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+struct p_info {
+  int pid;
+  int priority;
+  int state;
+  int wait_ticks;
+  int cpu_ticks;
+};
+
 // Per-process state
 struct proc {
   struct spinlock lock;
@@ -111,4 +119,7 @@ struct proc {
   int priority;                // Dynamic priority (SCHED_MIN–SCHED_MAX)
   int wait_ticks;              // Ticks waiting in RUNNABLE state
   int cpu_ticks;               // Ticks spent running on CPU in current window
+  uint64 total_cpu_ticks;      // Total ticks spent on CPU (cumulative)
+  uint64 total_wait_ticks;     // Total ticks spent waiting (cumulative)
+  uint64 start_tick;           // Tick count when process was created
 };
