@@ -70,7 +70,7 @@ main(int argc, char *argv[])
   // Sleep for a short time to allow the background Garbage Collector to run
   // You should see the Kernel's cprintf log pop up in the terminal!
   printf( YELLOW "Waiting for OS Garbage Collector to trigger...\n" RESET);
-  pause(150);
+  pause(20);
 
   printf( CYAN "Memfile Test Completed\n" RESET);
   exit(0);

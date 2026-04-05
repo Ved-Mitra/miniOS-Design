@@ -320,22 +320,13 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     flags = PTE_FLAGS(*pte);
     
     // CoW: Clear PTE_W and set PTE_COW if it was writable
-    if (flags & PTE_W) {
+    if(flags & PTE_W) {
       flags = (flags & ~PTE_W) | PTE_COW;
       *pte = PA2PTE(pa) | flags;
     }
 
-    // map same physical page into child page table
-    if(mappages(new, i, PGSIZE, pa, flags) != 0){
-      goto err;
-    }
-
-    // increase reference count
-    // remove write permission in parent, mark as COW
-    *pte &= ~PTE_W;
-    *pte |= PTE_COW;
     // map same physical page into child (no copy)
-    if(mappages(new, i, PGSIZE, pa, (flags & ~PTE_W) | PTE_COW) != 0){
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
       goto err;
     }
     // increase reference count of shared page

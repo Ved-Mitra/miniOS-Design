@@ -56,7 +56,6 @@ int memfile_delete(struct memfile *mf)
     return -1;
     
   acquire(&mftable.lock);
-  mf->ref_count--;
   mf->is_marked_deleted = 1; // Mark for GC to reclaim later
   release(&mftable.lock);
   
@@ -129,6 +128,10 @@ fileclose(struct file *f)
     begin_op();
     iput(ff.ip);
     end_op();
+  } else if(ff.type == FD_MEM){
+    acquire(&mftable.lock);
+    ff.memf->ref_count--;
+    release(&mftable.lock);
   }
 }
 
