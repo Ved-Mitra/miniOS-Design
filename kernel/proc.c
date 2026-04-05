@@ -431,6 +431,8 @@ kwait(uint64 addr)
   }
 }
 
+static int idle_ticks = 0;
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -498,6 +500,7 @@ scheduler(void)
       best->state = RUNNING;
       c->proc = best;
       best->wait_ticks = 0; // Reset waiting time (NFR-PERF-1)
+      idle_ticks = 0; // Reset idle timer since OS is active
 
       release(&wait_lock);
       swtch(&c->context, &best->context);
@@ -527,13 +530,19 @@ scheduler(void)
     } else {
       release(&wait_lock);
       
-      // REQ-DMEM-1, REQ-DMEM-2: System is idle, run GC and Compaction
-      garbage_collect();
-      
-      static int idle_ticks = 0;
+      acquire(&tickslock);
       idle_ticks++;
+      release(&tickslock);
+      
+      if(idle_ticks > 10) {
+        // REQ-DMEM-1, REQ-DMEM-2: System is idle, run GC and Compaction
+        garbage_collect();
+      }
+      
       if(idle_ticks > 1000) {
+        acquire(&tickslock);
         idle_ticks = 0;
+        release(&tickslock);
         compact_memory();
       }
 
