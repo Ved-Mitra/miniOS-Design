@@ -3,6 +3,8 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "defs.h"
+#include "user/logo.h"
+#include "user/color.h"
 
 volatile static int started = 0;
 extern void meminit(void);
@@ -14,6 +16,8 @@ main()
   if(cpuid() == 0){
     consoleinit();
     printfinit();
+    printf("\n");
+    printf("%s%s%s\n", CYAN, OS_LOGO, RESET);
     printf("\n");
     printf("xv6 kernel is booting\n");
     printf("\n");
