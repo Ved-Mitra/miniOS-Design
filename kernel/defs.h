@@ -76,10 +76,6 @@ void            kinit(void);
 void            incref(uint64);
 int             getref(uint64);
 
-// gc.c
-void            garbage_collect(void);
-void            compact_memory(void);
-
 // log.c
 void            initlog(int, struct superblock*);
 void            log_write(struct buf*);

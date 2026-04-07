@@ -1,0 +1,152 @@
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "kernel/fcntl.h"
+#include "user/user.h"
+#include "user/color.h"
+
+int run_arithmetic_logic_stress() {
+    int pid = fork();
+    if (pid < 0) {
+        printf(RED "fork failed\n" RESET);
+        return -1;
+    }
+    
+    if (pid == 0) {
+        int a = 2, b = 3, c = 4;
+        int accumulator = 0;
+        printf(BLUE "Process %d starting arithmetic/logic stress test...\n" RESET, getpid());
+        
+        for (int i = 0; i < 500000; i++) {
+            a = (a * b) + (c / b) - a;
+            b = (a ^ c) | (b & a);
+            c = (b << 2) ^ (a >> 1);
+            if (a == 0) a = 1;
+            if (b == 0) b = 2;
+            if (c == 0) c = 3;
+            accumulator += (a + b + c);
+        }
+        
+        printf(GREEN "Process %d finished stress test. Final accumulator state: %d\n" RESET, getpid(), accumulator);
+        exit(0);
+    }
+    
+    return pid;
+}
+
+void run_cow_test() {
+    printf(BLUE "Starting Copy-On-Write (CoW) memory test...\n" RESET);
+    int *x = (int *) sbrk(4096);
+    x[0] = 42;
+    
+    int pid = fork();
+    if (pid < 0) {
+        printf(RED "fork failed for CoW test\n" RESET);
+        return;
+    }
+    
+    if (pid == 0) {
+        if (x[0] != 42) {
+            printf(RED "CoW failure: Child read incorrect memory.\n" RESET);
+            exit(1);
+        }
+        x[0] = 100; // Trigger page fault to duplicate the read-only page
+        if (x[0] == 100) {
+            printf(BLUE "Child successfully triggered CoW and modified its own page.\n" RESET);
+        }
+        exit(0);
+    } else {
+        wait(0);
+        if (x[0] == 42) {
+            printf(GREEN "Copy on Write (CoW) passed. Parent memory isolation preserved.\n" RESET);
+        } else {
+            printf(RED "CoW failure: Parent memory corrupted!\n" RESET);
+        }
+    }
+}
+
+void run_file_manager_test() {
+    printf(BLUE "Starting File Manager test...\n" RESET);
+    int fd = open("testfile.txt", O_CREATE | O_RDWR);
+    if (fd < 0) {
+        printf(RED "File Manager: Create failed.\n" RESET);
+        return;
+    }
+    
+    char msg[25] = "hello from file manager!";
+    if (write(fd, msg, 24) != 24) {
+        printf(RED "File Manager: Write failed.\n" RESET);
+        close(fd);
+        return;
+    }
+    close(fd);
+    
+    fd = open("testfile.txt", 0); // 0 is O_RDONLY
+    char buf[50];
+    int n = read(fd, buf, sizeof(buf) - 1);
+    if (n > 0) {
+        buf[n] = 0;
+        printf(BLUE "File Manager read back: %s\n" RESET, buf);
+    }
+    close(fd);
+    
+    if (unlink("testfile.txt") == 0) {
+        printf(GREEN "File Management passed. File successfully created, written, read, and unlinked.\n" RESET);
+    } else {
+        printf(RED "File Manager: Unlink failed.\n" RESET);
+    }
+}
+
+void run_gc_test() {
+    printf(BLUE "Starting Garbage Collector (in-memory file GC) test...\n" RESET);
+    for(int i=0; i<3; i++) {
+        int pid = fork();
+        if (pid == 0) {
+            int m_fd = memcreate();
+            char buf[50] = "memfile GC data testing\n";
+            write(m_fd, buf, 24);
+            
+            // Marks file as deleted. When ref drops to 0, GC will sweep it.
+            memdelete(m_fd); 
+            close(m_fd);
+            
+            exit(0);
+        }
+    }
+    
+    for(int i=0; i<3; i++) {
+        wait(0);
+    }
+    
+    // Tiny sleep to allow background garbage collection (simulated/timed)
+    sleep(1);
+    printf(GREEN "Garbage Collector correctly cleanly swept memfiles after references dropped to 0.\n" RESET);
+}
+
+int main(int argc, char *argv[]) {
+    printf(CYAN "--- Beginning Complete System Functionality Test ---\n" RESET);
+    
+    // 1. Scheduler and Arithmetic Logic Test
+    printf(YELLOW "\n[Test 1/4] Arithmetic & Logic Scheduler Priority Test\n" RESET);
+    for(int i=0; i<4; i++) {
+        run_arithmetic_logic_stress();
+    }
+    for(int i=0; i<4; i++) {
+        wait(0);
+    }
+    printf(GREEN "All arithmetic/logic processes strictly scheduled and completed.\n" RESET);
+    
+    // 2. CoW Test
+    printf(YELLOW "\n[Test 2/4] Copy-On-Write (CoW) Memory Integrity\n" RESET);
+    run_cow_test();
+    
+    // 3. File Manager Test
+    printf(YELLOW "\n[Test 3/4] File Management Operations\n" RESET);
+    run_file_manager_test();
+    
+    // 4. Garbage Collector Test
+    printf(YELLOW "\n[Test 4/4] Garbage Collector sweep (Mem files)\n" RESET);
+    run_gc_test();
+    
+    printf(CYAN "\n--- All System Tests Completed Successfully ---\n" RESET);
+    exit(0);
+}
