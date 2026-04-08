@@ -161,11 +161,11 @@ UPROGS=\
 	$U/_help\
 	$U/_clear\
 	$U/_mkfile\
+	$U/_editfile\
 # 	$U/_delfile\
 # 	$U/_deldir\
 # 	$U/_mv\
 # 	$U/_cp\
-# 	$U/_editfile\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

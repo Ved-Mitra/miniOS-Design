@@ -7,7 +7,7 @@
 int main(int argc, char *argv[])
 {
     if (argc != 2) {
-    printf("Usage: mkfile <filename>\n");
+    printf(YELLOW "Usage: mkfile <filename>\n" RESET);
     exit(1);
   }
 
@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
   int fd = open(argv[1], O_CREATE | O_RDWR);
 
   if (fd < 0) {
-    printf("mkfile: failed to create file %s\n", argv[1]);
+    printf(RED "mkfile: failed to create file %s\n" RESET, argv[1]);
     exit(1);
   }
 
