@@ -1,0 +1,15 @@
+Output of the following Program:
+# include <stdio.h>
+# define scanf  "%s Geeks For Geeks "
+main()
+{
+   printf(scanf, scanf);
+   getchar();
+   return 0;
+}
+(a)%s Geeks For Geeks Geeks For Geeks
+(b)Geeks For Geeks Geeks For Geeks
+(c)%s Geeks For GeeksGeeks For Geeks
+(d)%s Geeks For Geeks %s Geeks For Geeks
+$
+A. a

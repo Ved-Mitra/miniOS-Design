@@ -1,0 +1,7 @@
+Which file is generated after pre-processing of a C program?
+(a).p
+(b).i
+(c).o
+(d).m
+$
+A. b

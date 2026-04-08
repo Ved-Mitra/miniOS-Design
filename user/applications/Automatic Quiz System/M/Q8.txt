@@ -1,0 +1,7 @@
+Which of the following functions is Riemann integrable on the interval [0, 1]?
+(a) f(x) = (1 / x)
+(b) f(x) = sin(x)
+(c) f(x) = (1 / x^2)
+(d) f(x) = e^x
+$
+A. b

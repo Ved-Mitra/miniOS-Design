@@ -1,0 +1,7 @@
+The Boolean expression for an AND gate is:
+(a) A + B
+(b) AB
+(c) A'B
+(d) A + B'
+$
+A. b

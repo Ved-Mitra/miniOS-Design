@@ -1,0 +1,7 @@
+In a Zener diode, the reverse breakdown voltage is:
+(a) Always zero
+(b) A specific voltage
+(c) Infinite
+(d) Not important
+$
+A. b

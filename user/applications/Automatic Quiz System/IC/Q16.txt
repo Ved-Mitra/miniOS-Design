@@ -1,0 +1,7 @@
+Which of the following is true?
+(a)gets() doesn't do any array bound testing and should not be used. 
+(b)fgets() should be used in place of gets() only for files, otherwise gets() is fine
+(c)gets() cannot read strings with spaces
+(d)None of the above
+$
+A. a

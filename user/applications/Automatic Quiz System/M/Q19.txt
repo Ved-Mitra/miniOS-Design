@@ -1,0 +1,7 @@
+Which of the following sequences converges to 0?
+(a) An = 1 / n
+(b) An = 1 / n^2
+(c) An = 1 / sqrt(n)
+(d) An = n / (n + 1)
+$
+A. a

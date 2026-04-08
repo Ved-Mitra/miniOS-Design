@@ -1,0 +1,9 @@
+The following statement in ‘C’ 
+int (*f())[ ]; 
+declares
+(a)a function returning a pointer to an array of integers
+(b)a function returning an array of pointers to integers.
+(c)array of functions returning pointers to integers.
+(d)an illegal statement.
+$
+A. a

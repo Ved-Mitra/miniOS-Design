@@ -1,0 +1,7 @@
+In a flip-flop, the state changes when:
+(a) The clock signal is high
+(b) The reset signal is high
+(c) The input signals change
+(d) The clock signal edges trigger
+$
+A. d

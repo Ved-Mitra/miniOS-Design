@@ -1,0 +1,18 @@
+Output of the following Program:
+#include<stdio.h>
+char *getString()
+{
+    char str[] = "Will I be printed?";    
+    return str;
+}
+int main()
+{
+    printf("%s", getString());
+    getchar();
+}
+(a)Will I be printed?
+(b)some garbage value
+(c)error
+(d)Will I be printed
+$
+A. b

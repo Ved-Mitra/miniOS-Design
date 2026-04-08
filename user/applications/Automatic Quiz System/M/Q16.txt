@@ -1,0 +1,7 @@
+Which of the following functions is continuous at x = 2?
+(a) f(x) = (x^2 - 4) / (x - 2)
+(b) f(x) = 3 / (x-2)
+(c) f(x) = x^2 - 3x + 2
+(d) f(x) = sqrt(x - 2)
+$
+A. c

@@ -1,0 +1,7 @@
+The maximum current rating of a diode is defined by its:
+(a) Forward voltage
+(b) Reverse current
+(c) Peak inverse voltage (PIV)
+(d) Reverse recovery time
+$
+A. c

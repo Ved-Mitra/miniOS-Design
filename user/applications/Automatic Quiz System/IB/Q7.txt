@@ -1,0 +1,7 @@
+If a double-stranded DNA has 10% adenine, what percentage of cytosine will be present?
+a) 10%
+b) 20%
+c) 30%
+d) 40% 
+$
+A. d

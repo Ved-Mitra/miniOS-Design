@@ -1,0 +1,8 @@
+Where does the next term in the sequence 
+2,5,8,11,… lie?
+(a) (14, 16)
+(b) (12, 13)
+(c) (10, 11)
+(d) (8, 9)
+$
+A. b

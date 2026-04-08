@@ -1,0 +1,15 @@
+Output of the following Program:
+#include<stdio.h>
+int main()
+{
+    static int var = 5;
+    printf("%d ",var--);
+    if(var)
+        main();                   
+}
+(a)54321
+(b)4 3 2 1
+(c)5 4 3 2 1 0
+(d)5 4 3 2 1
+$
+A. d

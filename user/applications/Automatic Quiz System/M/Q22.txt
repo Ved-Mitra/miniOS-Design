@@ -1,0 +1,7 @@
+For which of the following series is the ratio test inconclusive?
+(a) Sum (from n = 1 to infinity) of 1 / n
+(b) Sum (from n = 1 to infinity) of 1 / n^2
+(c) Sum (from n = 1 to infinity) of 1 / 2^n
+(d) Sum (from n = 1 to infinity) of n / (n + 1)
+$
+A. d

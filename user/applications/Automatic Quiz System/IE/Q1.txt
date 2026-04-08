@@ -1,0 +1,7 @@
+Diode is most commonly used as:
+(a) Voltage regulator
+(b) Rectifier
+(c) Amplifier
+(d) Oscillator
+$
+A. b

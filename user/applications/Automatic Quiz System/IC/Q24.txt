@@ -1,0 +1,7 @@
+In C, static storage class cannot be used with:
+(a)global variable
+(b)function parameter
+(c)function name
+(d)local variable
+$
+A. b

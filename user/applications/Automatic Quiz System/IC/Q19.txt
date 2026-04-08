@@ -1,0 +1,7 @@
+Which of the following operators can be applied on structure variables?
+(a)==
+(b)=
+(c)both
+(d)none
+$
+A. c

@@ -1,0 +1,7 @@
+Which of the following functions is differentiable at x = 0?
+(a) f(x) = |x|
+(b) f(x) = x^2
+(c) f(x) = sin(x)
+(d) f(x) = sqrt(x)
+$
+A. b

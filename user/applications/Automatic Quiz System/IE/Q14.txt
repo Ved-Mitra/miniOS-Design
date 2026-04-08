@@ -1,0 +1,7 @@
+ An Op-Amp in a negative feedback configuration operates as:
+(a) A voltage amplifier
+(b) A buffer
+(c) A current amplifier
+(d) A comparator
+$
+A. a

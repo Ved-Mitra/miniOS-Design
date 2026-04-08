@@ -1,0 +1,15 @@
+Output of the following Program:
+int main()
+{
+	char a[2][3][3] = {'g','e','e','k','s','f','o',
+			   'r','g','e','e','k','s'};
+	printf("%s ", **a);
+	getchar();
+	return 0;
+}
+(a)g
+(b)error
+(c)geeksforgeeks
+(d)g_ (_ means space)
+$
+A. c

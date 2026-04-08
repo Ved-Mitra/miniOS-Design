@@ -1,0 +1,7 @@
+Which of the following is the correct template DNA sequence corresponding to the given tRNA sequence "AUG"?
+a) UAC
+b) TAC
+c) ATG
+d) UTG
+$
+A. c

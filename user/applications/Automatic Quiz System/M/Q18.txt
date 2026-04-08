@@ -1,0 +1,7 @@
+Which of the following is continuous everywhere?
+(a) f(x) = 1 / x
+(b) f(x) = x^2
+(c) f(x) = sin(x)
+(d) f(x) = sqrt(x)
+$
+A. c

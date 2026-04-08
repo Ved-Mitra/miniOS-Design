@@ -1,0 +1,21 @@
+Output of the following Program:
+#include‹stdio.h›
+int main()
+{
+    struct site
+    {
+        char name[] = "GeeksforGeeks";
+        int no_of_pages = 200;
+    };
+    struct site *ptr;
+    printf("%d",ptr->no_of_pages);
+    printf("%s",ptr->name); 
+    getchar();
+    return 0;
+}
+(a)run time error
+(b)compile time error
+(c)GeeksforGeeks200
+(d)error:memory not allocated
+$
+A. b

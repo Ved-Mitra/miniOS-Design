@@ -1,0 +1,7 @@
+At which point is the function f(x) = |x - 1| not differentiable?
+(a) x = 1
+(b) x = 0
+(c) x = 2
+(d) Everywhere
+$
+A. a

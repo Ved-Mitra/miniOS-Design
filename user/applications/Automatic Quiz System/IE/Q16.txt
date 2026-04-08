@@ -1,0 +1,7 @@
+The principle of operation for a NAND gate is:
+(a) Output is high when all inputs are high
+(b) Output is low only when all inputs are high
+(c) Output is low when at least one input is low
+(d) Output is high only when at least one input is low
+$
+A. b

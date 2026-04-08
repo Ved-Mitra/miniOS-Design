@@ -1,0 +1,7 @@
+Which of the following is the correct expression for a 3-input AND gate?
+(a) A + B + C
+(b) A'B'C
+(c) ABC
+(d) (A + B + C)'
+$
+A. c

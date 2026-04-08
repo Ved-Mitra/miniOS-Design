@@ -1,0 +1,7 @@
+Which of the following functions is differentiable at x = 0?
+(a) f(x) = (1 / x)
+(b) f(x) = x^2 + 3x
+(c) f(x) = sqrt(x)
+(d) f(x) = |x|
+$
+A. b

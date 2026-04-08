@@ -1,0 +1,7 @@
+What is the function of a multiplexer (MUX)?
+(a) Combine multiple input signals into a single output
+(b) Amplify a signal
+(c) Store data
+(d) Invert a signal
+$
+A. a

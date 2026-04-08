@@ -1,0 +1,7 @@
+The common-emitter amplifier configuration provides:
+(a) No phase shift
+(b) Inverted phase shift
+(c) Positive phase shift
+(d) High input impedance
+$
+A. b

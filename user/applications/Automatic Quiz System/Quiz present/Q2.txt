@@ -1,0 +1,6 @@
+Which of the following is not a storage class specifier in C?
+(a)auto
+(b)register
+(c)static
+(d)extern
+(e)volatile

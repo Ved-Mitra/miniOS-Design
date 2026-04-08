@@ -1,0 +1,13 @@
+Output of the following Program:
+#include <stdio.h>
+int main()
+{
+  printf("%p", main);
+  getchar();
+  return 0;
+}
+(a)infinite loop
+(b)address of function main
+(c)error
+$
+A. b

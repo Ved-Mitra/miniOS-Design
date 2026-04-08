@@ -1,0 +1,338 @@
+									IC QUIZ
+						Introduction to Computer Science
+									CSL1010
+
+Q1. Which of the following is not a logical operator?
+(a)&&
+(b)!
+(c)||
+(d)|
+
+
+Q2. Which of the following is not a storage class specifier in C?
+(a)auto
+(b)register
+(c)static
+(d)extern
+(e)volatile
+
+
+Q3. Output of the following Program:
+int main()
+{
+	char a[2][3][3] = {'g','e','e','k','s','f','o',
+			   'r','g','e','e','k','s'};
+	printf("%s ", **a);
+	getchar();
+	return 0;
+}
+(a)g
+(b)error
+(c)geeksforgeeks
+(d)g_ (_ means space)
+
+
+Q4. Output of the following Program:
+#include<stdio.h>
+char *getString()
+{
+    char str[] = "Will I be printed?";    
+    return str;
+}
+int main()
+{
+    printf("%s", getString());
+    getchar();
+}
+(a)Will I be printed?
+(b)some garbage value
+(c)error
+(d)Will I be printed
+
+
+Q5. In _______, the bodies of the two loops are merged together to form a single loop provided that they do not make any references to each other.
+(a)loop unrolling
+(b)strength reduction
+(c)loop concatenation
+(d)loop jamming
+
+
+Q6. What is output of the following program?
+int fun()
+{
+  static int num = 16;
+  return num--;
+}
+
+int main()
+{
+  for(fun(); fun(); fun())
+    printf("%d ", fun());
+  return 0;
+}
+(a)Infinite loop
+(b)13 10 7 4 1
+(c)15 12 8 5 2
+(d)14 11 8 5 2
+
+
+Q7. Which of the following is true?
+(a)gets() doesn't do any array bound testing and should not be used. 
+(b)fgets() should be used in place of gets() only for files, otherwise gets() is fine
+(c)gets() cannot read strings with spaces
+(d)None of the above
+
+
+Q8. Output of the following Program:
+#include‹stdio.h›
+int main()
+{
+    struct site
+    {
+        char name[] = "GeeksforGeeks";
+        int no_of_pages = 200;
+    };
+    struct site *ptr;
+    printf("%d",ptr->no_of_pages);
+    printf("%s",ptr->name); 
+    getchar();
+    return 0;
+}
+(a)run time error
+(b)compile time error
+(c)GeeksforGeeks200
+(d)error:memory not allocated
+
+
+Q9. Output of the following Program:
+int main()
+{
+   char str[]= "geeks\nforgeeks";
+   char *ptr1, *ptr2;
+      
+   ptr1 = &str[3];
+   ptr2 = str + 5;
+   printf("%c", ++*str - --*ptr1 + *ptr2 + 2); 
+   printf("%s", str); 
+  
+   getchar();
+   return 0;
+}
+(a)error
+(b)heejs
+   forgeeks
+(c)geeks
+   forgeeks
+
+
+Q10. Which of the following operators can be applied on structure variables?
+(a)==
+(b)=
+(c)both
+(d)none
+
+
+Q11. Output of the following Program:
+#include<stdio.h>
+int main()
+{
+    static int i=5;
+    if(--i){
+        main();
+        printf("%d ",i);
+    }   
+}
+(a)4321
+(b)4 3 2 1
+(c)error
+(d)0 0 0 0
+
+
+Q12. Output of the following Program:
+#include<stdio.h>
+int main()
+{
+    int x;
+    printf("%d",scanf("%d",&x)); 
+    /* Suppose that input value given 
+        for above scanf is 20 */
+    return 1;
+}
+(a)1
+(b)20
+(c)120
+(d)error
+
+
+Q13. Output of the following Program:
+#include <stdio.h>
+int main()
+{
+	int first = 50, second = 60, third;
+	third = first /* Will this comment work? */ + second;
+	printf("%d /* And this? */ \n", third);
+	
+	getchar();
+	return 0;
+}
+(a)110 /* And this? */
+(b)/* And this? */
+(c)110 * And this? *
+(d)50 /* And this? */
+
+
+Q14. Output of the following program:
+#include<stdio.h>
+int main() {
+   int n;
+   for(n = 7; n!=0; n--)
+     printf("n= %d",n--);
+   getchar();
+   return 0;
+}
+(a)infinite loop
+(b)7531
+(c)7420
+(d)compile time error
+
+
+Q15. In C, static storage class cannot be used with:
+(a)global variable
+(b)function parameter
+(c)function name
+(d)local variable
+
+
+Q16. Output of the following Program:
+#include <stdio.h>
+int main()
+{
+   printf("\new_c_question\by");
+   printf("\rgeeksforgeeks");
+ 
+   getchar();
+   return 0;
+}
+(a)geeksforgeeks
+(b)new c questions by
+   geeksforgeeks
+(c)error
+(d)new c questions bygeeksforgeeks
+
+
+Q17. Which file is generated after pre-processing of a C program?
+(a).p
+(b).i
+(c).o
+(d).m
+
+
+Q18. The translator which performs macro calls expansion is called:
+(a)macro processor
+(b)micro pre-processor
+(c)macro pre-precessor
+(d)dynamic linker
+
+
+Q19. Output of the following Program:
+# include <stdio.h>
+# define scanf  "%s Geeks For Geeks "
+main()
+{
+   printf(scanf, scanf);
+   getchar();
+   return 0;
+}
+(a)%s Geeks For Geeks Geeks For Geeks
+(b)Geeks For Geeks Geeks For Geeks
+(c)%s Geeks For GeeksGeeks For Geeks
+(d)%s Geeks For Geeks %s Geeks For Geeks
+
+
+Q20. The following statement in ‘C’ 
+int (*f())[ ]; 
+declares
+(a)a function returning a pointer to an array of integers
+(b)a function returning an array of pointers to integers.
+(c)array of functions returning pointers to integers.
+(d)an illegal statement.
+
+
+Q21. Output of the following Program:
+#include<stdio.h>
+int main()
+{
+    static int var = 5;
+    printf("%d ",var--);
+    if(var)
+        main();                   
+}
+(a)54321
+(b)4 3 2 1
+(c)5 4 3 2 1 0
+(d)5 4 3 2 1
+
+
+Q22. Output of the following Program:
+#include <stdio.h>
+int main()
+{
+  printf("%p", main);
+  getchar();
+  return 0;
+}
+(a)infinite loop
+(b)address of function main
+(c)error
+
+
+Q23. Output of the following program:
+# include <stdio.h>
+int main()
+{
+   int i=0;
+   for(i=0; i<20; i++)
+   {
+     switch(i)
+     {
+       case 0:
+         i+=5;
+       case 1:
+         i+=2;
+       case 5:
+         i+=5;
+       default:               
+         i+=4;
+         break;
+     }
+     printf("%d  ", i);
+   }
+ 
+   getchar();
+   return 0;
+}
+(a)15 21
+(b)16 21
+(c)17 22
+(d)16 19
+
+
+Q24. Output of the following Program:
+#include <stdio.h>
+int main()
+{
+    int i;
+    i = 1, 2, 3;         
+    printf("i = %d\n", i);
+ 
+    getchar();
+    return 0;
+}
+(a)error
+(b)i = 1,
+   i = 2,
+   i = 3,
+(c)i = 1,
+
+
+									"BEST OF LUCK"
