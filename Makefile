@@ -159,8 +159,8 @@ UPROGS=\
 	$U/_schedtest\
 	$U/_starve\
 	$U/_help\
-# 	$U/_mkfile\
-# 	$U/_clear\
+	$U/_clear\
+	$U/_mkfile\
 # 	$U/_delfile\
 # 	$U/_deldir\
 # 	$U/_mv\
