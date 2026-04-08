@@ -12,13 +12,13 @@ int main(int argc, char *argv[])
 
     //Create a new link (new name) to the existing file
     if (link(argv[1], argv[2]) < 0) {
-        printf(RED"mv: failed to move %s to %s\n", RESET ,argv[1], argv[2]);
+        printf(RED "mv: failed to move %s to %s\n" RESET, argv[1], argv[2]);
         exit(1);
     }
 
     //Delete the old link (old name)
     if (unlink(argv[1]) < 0) {
-        printf(RED"mv: failed to delete original file %s\n", RESET ,argv[1]);
+        printf(RED "mv: failed to delete original file %s\n" RESET, argv[1]);
         exit(1);
     }
 
