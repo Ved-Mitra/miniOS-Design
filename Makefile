@@ -164,8 +164,8 @@ UPROGS=\
 	$U/_editfile\
 	$U/_delfile\
 	$U/_deldir\
-# 	$U/_mv\
-# 	$U/_cp\
+	$U/_mv\
+	$U/_cp\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
