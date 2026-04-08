@@ -162,8 +162,8 @@ UPROGS=\
 	$U/_clear\
 	$U/_mkfile\
 	$U/_editfile\
-# 	$U/_delfile\
-# 	$U/_deldir\
+	$U/_delfile\
+	$U/_deldir\
 # 	$U/_mv\
 # 	$U/_cp\
 
