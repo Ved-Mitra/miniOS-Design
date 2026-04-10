@@ -107,3 +107,12 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64 sys_syslogread(void)
+{
+  uint64 buf;
+  int maxlen;
+  argaddr(0,&buf);
+  argint(1,&maxlen);
+  return readsyslog(buf,maxlen);
+}

@@ -26,6 +26,7 @@ int pause(int);
 int uptime(void);
 int memcreate(void);
 int memdelete(int);
+int syslogread(char*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

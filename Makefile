@@ -166,6 +166,7 @@ UPROGS=\
 	$U/_deldir\
 	$U/_mv\
 	$U/_cp\
+	$U/_logkeeper\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

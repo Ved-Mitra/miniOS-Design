@@ -22,3 +22,4 @@
 #define SYS_close  21
 #define SYS_memcreate  22
 #define SYS_memdelete  23
+#define SYS_syslogread  24
