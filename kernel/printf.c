@@ -176,9 +176,12 @@ int logprintf(char *fmt, ...)
   if(panicking == 0)
     acquire(&pr.lock);
 
+  consputc('\x01'); // special marker to indicate log-only message
+
   va_start(ap, fmt);
   for(i = 0; (cx = fmt[i] & 0xff) != 0; i++){
     if(cx != '%'){
+      consputc(cx);
       putc_log(cx);
       continue;
     }
@@ -214,24 +217,32 @@ int logprintf(char *fmt, ...)
     } else if(c0 == 'p'){
       printptr(va_arg(ap, uint64));
     } else if(c0 == 'c'){
+      consputc(va_arg(ap, uint));
       putc_log(va_arg(ap, uint));
     } else if(c0 == 's'){
       if((s = va_arg(ap, char*)) == 0)
         s = "(null)";
-      for(; *s; s++)
+      for(; *s; s++){
+        consputc(*s);
         putc_log(*s);
+      }
     } else if(c0 == '%'){
+      consputc('%');
       putc_log('%');
     } else if(c0 == 0){
       break;
     } else {
       // Print unknown % sequence to draw attention.
+      consputc('%');
       putc_log('%');
+      consputc(c0);
       putc_log(c0);
     }
 
   }
   va_end(ap);
+
+  consputc('\x02'); // special marker to indicate end of log-only message
 
   if(panicking == 0)
     release(&pr.lock);
