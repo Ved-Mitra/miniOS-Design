@@ -1,0 +1,7 @@
+An operational amplifier in the open-loop configuration has:
+(a) Low gain
+(b) High gain
+(c) Zero gain
+(d) Unity gain
+$
+A. b

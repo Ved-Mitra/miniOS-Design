@@ -1,0 +1,19 @@
+What is output of the following program?
+int fun()
+{
+  static int num = 16;
+  return num--;
+}
+
+int main()
+{
+  for(fun(); fun(); fun())
+    printf("%d ", fun());
+  return 0;
+}
+(a)Infinite loop
+(b)13 10 7 4 1
+(c)15 12 8 5 2
+(d)14 11 8 5 2
+$
+A. d

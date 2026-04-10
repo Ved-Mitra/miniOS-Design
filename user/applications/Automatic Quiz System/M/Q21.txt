@@ -1,0 +1,7 @@
+Which of the following series diverges?
+(a) Sum (from n = 1 to infinity) of 1 / n^2
+(b) Sum (from n = 1 to infinity) of 1 / n
+(c) Sum (from n = 1 to infinity) of 1 / 2^n
+(d) Sum (from n = 1 to infinity) of 1 / n^3
+$
+A. b

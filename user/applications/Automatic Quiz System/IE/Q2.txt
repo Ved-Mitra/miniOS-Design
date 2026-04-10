@@ -1,0 +1,7 @@
+The ideal forward voltage for a silicon diode is:
+(a) 0.1V
+(b) 0.7V
+(c) 1.2V
+(d) 2.0V
+$
+A. b

@@ -1,0 +1,7 @@
+Does the function f(x)=(x^2+x-6)/(x^2-4) have a continuous extension at x=2?
+(a) Yes , it is 1.35
+(b) Yes, it is 1.25
+(c) No 
+(d) None of these
+$
+A. b

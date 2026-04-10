@@ -1,0 +1,7 @@
+What is the limit of the sequence An = n / (n + 1) as n approaches infinity?
+(a) 1
+(b) 0
+(c) infinity
+(d) Does not exist
+$
+A. a

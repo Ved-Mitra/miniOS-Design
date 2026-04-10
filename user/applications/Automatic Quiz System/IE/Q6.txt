@@ -1,0 +1,7 @@
+In a Bipolar Junction Transistor (BJT), the transistor operates in which region when the collector current is zero?
+(a) Active
+(b) Cutoff
+(c) Saturation
+(d) Reverse-active
+$
+A. b

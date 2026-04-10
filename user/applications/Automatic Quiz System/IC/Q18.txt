@@ -1,0 +1,7 @@
+In _______, the bodies of the two loops are merged together to form a single loop provided that they do not make any references to each other.
+(a)loop unrolling
+(b)strength reduction
+(c)loop concatenation
+(d)loop jamming
+$
+A. d

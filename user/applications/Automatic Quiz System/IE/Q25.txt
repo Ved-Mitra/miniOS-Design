@@ -1,0 +1,7 @@
+ In a logic circuit, the AND gate gives an output of ‘1’ when:
+(a) Any input is high
+(b) All inputs are high
+(c) Only one input is high
+(d) None of the above
+$
+A. b

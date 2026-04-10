@@ -1,0 +1,7 @@
+Which of the following is a condition for a function to be Riemann integrable on the interval [a, b]?
+(a) The function must be continuous on [a, b].
+(b) The function must be bounded on [a, b] and have a finite number of discontinuities.
+(c) The function must be differentiable on [a, b].
+(d) The function must be continuous at a and b only.
+$
+A. b

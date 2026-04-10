@@ -1,0 +1,16 @@
+Output of the following Program:
+#include<stdio.h>
+int main()
+{
+    int x;
+    printf("%d",scanf("%d",&x)); 
+    /* Suppose that input value given 
+        for above scanf is 20 */
+    return 1;
+}
+(a)1
+(b)20
+(c)120
+(d)error
+$
+A. a

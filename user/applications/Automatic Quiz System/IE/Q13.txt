@@ -1,0 +1,7 @@
+The current gain (β) of a BJT is defined as:
+(a) Ic / Ib
+(b) Ic / Vb
+(c) Ie / Ib
+(d) Vc / Vb
+$
+A. a

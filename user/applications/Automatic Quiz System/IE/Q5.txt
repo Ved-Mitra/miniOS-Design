@@ -1,0 +1,7 @@
+Which of the following is a common application of a Schottky diode?
+(a) Voltage regulation
+(b) High-frequency circuits
+(c) Power amplification
+(d) Current sensing
+$
+A. b

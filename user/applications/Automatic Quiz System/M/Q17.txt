@@ -1,0 +1,7 @@
+Which of the following is a condition for a function to be continuous at a point x = a?
+(a) The function must be defined at x = a.
+(b) The limit of the function as x approaches a must exist.
+(c) The function's value at x = a must equal the limit as x approaches a.
+(d) All of the above.
+$
+A. d

@@ -1,0 +1,7 @@
+The translator which performs macro calls expansion is called:
+(a)macro processor
+(b)micro pre-processor
+(c)macro pre-precessor
+(d)dynamic linker
+$
+A. c

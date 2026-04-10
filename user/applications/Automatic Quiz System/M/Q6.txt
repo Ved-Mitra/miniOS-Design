@@ -1,0 +1,8 @@
+What is the 10th term of the arithmetic progression 
+3,7,11,15,…?
+(a) 35
+(b) 33
+(c) 30
+(d) 25
+$
+A. b

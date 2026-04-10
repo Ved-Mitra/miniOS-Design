@@ -1,0 +1,7 @@
+Which of the following is not a logical operator?
+(a)&&
+(b)!
+(c)||
+(d)|
+$
+A. d

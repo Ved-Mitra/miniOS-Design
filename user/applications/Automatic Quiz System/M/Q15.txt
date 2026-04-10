@@ -1,0 +1,7 @@
+Which of the following conditions is necessary for a function to be differentiable at a point?
+(a) The function must be continuous at the point.
+(b) The function must be continuous and have a slope at the point.
+(c) The function must be continuous and its limit must exist at the point.
+(d) The function must have a local minimum at the point.
+$
+A. a

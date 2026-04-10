@@ -1,0 +1,7 @@
+The ideal output impedance of an Op-Amp is:
+(a) Infinite
+(b) Zero
+(c) 10k ohms
+(d) 1k ohms
+$
+A. b

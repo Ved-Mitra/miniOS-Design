@@ -1,0 +1,7 @@
+The function f(x)=x^2+1 is :
+(a) Even 
+(b) Odd
+(c) Neither
+(d) Both
+$
+A. a

@@ -1,0 +1,17 @@
+Output of the following Program:
+#include <stdio.h>
+int main()
+{
+	int first = 50, second = 60, third;
+	third = first /* Will this comment work? */ + second;
+	printf("%d /* And this? */ \n", third);
+	
+	getchar();
+	return 0;
+}
+(a)110 /* And this? */
+(b)/* And this? */
+(c)110 * And this? *
+(d)50 /* And this? */
+$
+A. a

@@ -1,0 +1,7 @@
+Which type of RNA is responsible for splicing introns from primary genomic transcripts?
+a) Messenger RNA (mRNA)
+b) Small nuclear RNA (snRNA)
+c) Ribosomal RNA (rRNA)
+d) MicroRNA (miRNA)
+$
+A. b

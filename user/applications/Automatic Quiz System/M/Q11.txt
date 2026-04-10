@@ -1,0 +1,7 @@
+The function f(x) = (1 / x) is Riemann integrable on the interval [1, 2].
+(a) True
+(b) False
+(c) Neither
+(d) Both
+$
+A. a

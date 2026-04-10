@@ -1,0 +1,7 @@
+Which of the following sequences diverges?
+(a) a_n = 1 / n
+(b) a_n = 1 / n^2
+(c) a_n = n / (n + 1)
+(d) a_n = (-1)^n / n
+$
+A. c

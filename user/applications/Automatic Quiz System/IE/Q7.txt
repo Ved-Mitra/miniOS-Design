@@ -1,0 +1,7 @@
+In a BJT, the current flowing from the base to the emitter is called the:
+(a) Collector current
+(b) Base current
+(c) Emitter current
+(d) Saturation current
+$
+A. b

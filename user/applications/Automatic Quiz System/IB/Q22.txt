@@ -1,0 +1,7 @@
+In order for a process to be spontaneous, how must entropy (ΔS) behave?
+a) ΔS must decrease
+b) ΔS must remain constant
+c) ΔS must increase
+d) ΔS must be zero
+$
+A. c

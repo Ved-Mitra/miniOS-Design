@@ -1,0 +1,7 @@
+Where does the root of the equation f(x)=x^3-x-1 lie?
+(a) (9,12)
+(b) (3,4)
+(c) (1,2)
+(d) (9,12)
+$
+A. c

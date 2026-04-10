@@ -1,0 +1,15 @@
+Output of the following program:
+#include<stdio.h>
+int main() {
+   int n;
+   for(n = 7; n!=0; n--)
+     printf("n= %d",n--);
+   getchar();
+   return 0;
+}
+(a)infinite loop
+(b)7531
+(c)7420
+(d)compile time error
+$
+A. a

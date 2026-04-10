@@ -1,0 +1,7 @@
+Which of the following function is neither increasing nor decreasing for all domain?
+(a) Volume of a sphere as a function of its radius.
+(b) Greatest integer function.
+(c) Height above Earth's sea level as a function of atmospheric pressure(assumed nonzero).
+(d) Kinetic energy of a body as a function of its velocity.
+$
+A. b

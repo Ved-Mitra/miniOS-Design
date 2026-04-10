@@ -1,0 +1,7 @@
+Identify the molecule with catalytic activities among the molecules given below
+a) proteins
+b)carbohydrates
+c) lipids
+d) nucleic acids
+$
+A. a

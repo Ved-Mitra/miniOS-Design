@@ -1,0 +1,18 @@
+Output of the following Program:
+#include <stdio.h>
+char *getString() {
+   char *str = "Nice test for strings";
+   return str;
+}
+
+int main() {
+   printf("%s", getString());
+   getchar();
+   return 0;
+}
+(a)some address
+(b)error
+(c)“Nice test for strings”
+(d)“Nice test for  strings”
+$
+A. c

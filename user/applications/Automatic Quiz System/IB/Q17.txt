@@ -1,0 +1,7 @@
+Which of the following is a function of the repressor protein in the lac operon
+a) Activates transcription of genes
+b) Binds to the operator to block RNA polymerase
+c) Removes introns from pre-mRNA
+d) Helps in the splicing of exons
+$
+A. b
