@@ -44,3 +44,4 @@ entry("pause");
 entry("uptime");
 entry("memcreate");
 entry("memdelete");
+entry("syslogread");

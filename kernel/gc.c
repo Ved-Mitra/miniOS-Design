@@ -24,7 +24,7 @@ void garbage_collect(void){
             mf->ref_count = 0;
             mf->size = 0;
             mf->is_marked_deleted = 0;
-            printf("GC: Collected memfile [%d] and freed associated memory blocks\n", i);
+            logprintf("GC: Collected memfile [%d] and freed associated memory blocks\n", i);
         }
     }
     release(&mftable.lock);
