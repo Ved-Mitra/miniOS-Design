@@ -1,48 +1,59 @@
-xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
-Version 6 (v6).  xv6 loosely follows the structure and style of v6,
-but is implemented for a modern RISC-V multiprocessor using ANSI C.
+# MiniOS (Version 1.0)
 
-ACKNOWLEDGMENTS
+MiniOS is a pedagogical operating system built as an advanced extension of the [MIT xv6](https://pdos.csail.mit.edu/6.1810/) UNIX-like teaching OS. It introduces modern operating system concepts including dynamic scheduling, advanced memory management, and specialized user space applications.
 
-xv6 is inspired by John Lions's Commentary on UNIX 6th Edition (Peer
-to Peer Communications; ISBN: 1-57398-013-7; 1st edition (June 14,
-2000)).  See also https://pdos.csail.mit.edu/6.1810/, which provides
-pointers to on-line resources for v6.
+## 🚀 Core Features
 
-The following people have made contributions: Russ Cox (context switching,
-locking), Cliff Frey (MP), Xiao Yu (MP), Nickolai Zeldovich, and Austin
-Clements.
+MiniOS replaces standard xv6 components with advanced subsystems:
 
-We are also grateful for the bug reports and patches contributed by
-Abhinavpatel00, Takahiro Aoyagi, Marcelo Arroyo, Hirbod Behnam, Silas
-Boyd-Wickizer, Anton Burtsev, carlclone, Ian Chen, clivezeng, Dan
-Cross, Cody Cutler, Mike CAT, Tej Chajed, Asami Doi,Wenyang Duan,
-echtwerner, eyalz800, Nelson Elhage, Saar Ettinger, Alice Ferrazzi,
-Nathaniel Filardo, flespark, Peter Froehlich, Yakir Goaron, Shivam
-Handa, Matt Harvey, Bryan Henry, jaichenhengjie, Jim Huang, Matúš
-Jókay, John Jolly, Alexander Kapshuk, Anders Kaseorg, kehao95,
-Wolfgang Keller, Jungwoo Kim, Jonathan Kimmitt, Eddie Kohler, Vadim
-Kolontsov, Austin Liew, l0stman, Pavan Maddamsetti, Imbar Marinescu,
-Yandong Mao, Matan Shabtay, Hitoshi Mitake, Carmi Merimovich,
-mes900903, Mark Morrissey, mtasm, Joel Nider, Hayato Ohhashi,
-OptimisticSide, papparapa, phosphagos, Harry Porter, Greg Price, Zheng
-qhuo, Quancheng, RayAndrew, Jude Rich, segfault, Ayan Shafqat, Eldar
-Sehayek, Yongming Shen, Fumiya Shigemitsu, snoire, Taojie, Cam Tenny,
-tyfkda, Warren Toomey, Stephen Tu, Alissa Tung, Rafael Ubal, unicornx,
-Amane Uehara, Pablo Ventura, Luc Videau, Xi Wang, WaheedHafez, Keiichi
-Watanabe, Lucas Wolf, Nicolas Wolovick, wxdao, Grant Wu, x653, Andy
-Zhang, Jindong Zhang, Icenowy Zheng, ZhUyU1997, and Zou Chang Wei.
+1. **Dynamic Priority Scheduling:** 
+   Preemptive scheduling algorithm featuring aging to prevent starvation. It dynamically adjusts process priorities based on CPU usage (applying a penalty for CPU-bound processes) and waiting time (applying an aging increment).
 
-ERROR REPORTS
+2. **Copy-On-Write (COW) Fork:**
+   Optimized process creation where the parent and child share physical memory pages upon `fork()`. Pages are only duplicated when a process attempts to modify them, managed via a robust reference counting mechanism.
 
-Please send errors and suggestions to Frans Kaashoek and Robert Morris
-(kaashoek,rtm@mit.edu).  The main purpose of xv6 is as a teaching
-operating system for MIT's 6.1810, so we are more interested in
-simplifications and clarifications than new features.
+3. **Advanced File Management System:**
+   Dynamic file storage handling creation, reading, writing, and deletion of files in dynamically allocated memory blocks.
 
-BUILDING AND RUNNING XV6
+4. **Garbage Collection:**
+   Automatic memory reclamation subsystem that detects unused file blocks and cleans up memory during system idle periods to minimize performance impact.
 
-You will need a RISC-V "newlib" tool chain from
-https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
-riscv64-softmmu.  Once they are installed, and in your shell
-search path, you can run "make qemu".
+5. **Dynamic Memory Compaction:**
+   Eliminates external fragmentation caused by file deletions by reorganizing physical memory and updating internal file references dynamically.
+6. **Log Keeper:**
+   Robust logging mechanism (`logkeeper`) designed to reliably record system events, track operations, and assist in debugging and stress testing across the OS.
+<!-- ## 🎮 User Applications
+
+MiniOS includes interactive user-space applications demonstrating its capabilities:
+- **Automatic Quiz System:** A fully functional interactive terminal quiz application.
+- **Snake Game:** The classic arcade game built for the MiniOS terminal.
+- **Tetris:** A terminal-based implementation of Tetris. -->
+
+## 🛠⚙️ Environment & Tech Stack
+
+- **Target Architecture:** RISC-V / x86 Architecture
+- **Emulator:** QEMU
+- **Languages:** C, Assembly
+- **Build Tools:** GNU Toolchain (gcc, ld, make)
+
+## 🏗️ Building and Running MiniOS
+
+Ensure you have the required RISC-V or x86 toolchain installed, QEMU (e.g., `qemu-system-riscv64` or `qemu-system-i386`), and Python 3.
+
+1. Clone the repository and navigate to the project root.
+2. Compile and run the OS using the custom runner script:
+   ```bash
+   python run_os.py
+   ```
+3. To view available commands once booted, explore the user space programs or refer to system binaries (e.g., `help` if implemented).
+
+## 👥 Contributors
+
+MiniOS Version 1.0 core subsystems were developed by:
+- **Taksh Mehta:** Dynamic Priority Scheduling
+- **Aditya Sharma:** Paging with Copy-On-Write (COW)
+- **Ved Mitra Verma:** File Management System & Garbage Collection
+- **Mayank Tiwari:** Dynamic Memory Compaction
+
+---
+*XV6 ACKNOWLEDGMENTS: xv6 is inspired by John Lions's Commentary on UNIX 6th Edition. MiniOS builds upon the foundational work provided by the MIT PDOS group.*
