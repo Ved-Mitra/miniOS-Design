@@ -6,7 +6,7 @@
 // Stress xv6 logging system by having several processes writing
 // concurrently to their own file (e.g., logstress f1 f2 f3 f4)
 
-#define BUFSZ 500
+#define BUFSZ 2000
 
 char buf[BUFSZ];
 
@@ -29,7 +29,7 @@ main(int argc, char **argv)
         exit(1);
       }
       memset(buf, '0'+i, SZ);
-      for(i = 0; i < N; i++){
+      for(int j = 0; j < N; j++){
         if((n = write(fd, buf, SZ)) != SZ){
           printf("write failed %d\n", n);
           exit(1);
