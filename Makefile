@@ -127,6 +127,7 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 .PRECIOUS: %.o
 
 UPROGS=\
+	$U/_calculator\
 	$U/_cat\
 	$U/_systest\
 	$U/_memcomp_test\
