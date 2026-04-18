@@ -27,7 +27,7 @@ struct free_block {
   uint num_pages;
 };
 
-// 🔥 Reference count array
+// Reference count array
 int ref_count[PHYSTOP / PGSIZE];
 
 #define PA2IDX(pa) (((uint64)(pa)) / PGSIZE)
@@ -308,7 +308,7 @@ compact_memory(void)
   }
 }
 
-// 🔥 Increment reference count
+// Increment reference count
 void
 incref(uint64 pa)
 {
@@ -317,7 +317,7 @@ incref(uint64 pa)
   release(&kmem.lock);
 }
 
-// 🔥 Get reference count
+// Get reference count
 int
 getref(uint64 pa)
 {
@@ -328,7 +328,7 @@ getref(uint64 pa)
   return count;
 }
 
-// 🔥 Decrement reference count
+//  Decrement reference count
 int
 decref(uint64 pa)
 {
